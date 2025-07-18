@@ -1,0 +1,308 @@
+import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import type { Gameweek, Fixture, Prediction } from "@shared/schema";
+
+interface PredictionFormProps {
+  gameweek: Gameweek;
+  fixtures: Fixture[];
+  predictions: Prediction[];
+  playerId: number;
+}
+
+const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: PredictionFormProps) => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  
+  // Create a map of existing predictions
+  const existingPredictions = new Map(
+    predictions.map(p => [p.fixtureId, p])
+  );
+
+  const [formData, setFormData] = useState(() => {
+    const initial: Record<number, { homeScore: string; awayScore: string; isJoker: boolean }> = {};
+    fixtures.forEach(fixture => {
+      const existing = existingPredictions.get(fixture.id);
+      initial[fixture.id] = {
+        homeScore: existing?.homeScore?.toString() || "",
+        awayScore: existing?.awayScore?.toString() || "",
+        isJoker: existing?.isJoker || false,
+      };
+    });
+    return initial;
+  });
+
+  const submitPredictionsMutation = useMutation({
+    mutationFn: async (predictions: any[]) => {
+      return apiRequest("POST", "/api/predictions", predictions);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Predictions submitted successfully!",
+        description: "Your predictions have been saved.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error submitting predictions",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleInputChange = (fixtureId: number, field: 'homeScore' | 'awayScore', value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [fixtureId]: {
+        ...prev[fixtureId],
+        [field]: value,
+      },
+    }));
+  };
+
+  const handleJokerChange = (fixtureId: number, isJoker: boolean) => {
+    setFormData(prev => {
+      const updated = { ...prev };
+      
+      // Clear all other jokers first
+      Object.keys(updated).forEach(id => {
+        updated[Number(id)].isJoker = false;
+      });
+      
+      // Set the new joker
+      updated[fixtureId].isJoker = isJoker;
+      
+      return updated;
+    });
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    const predictionsToSubmit = fixtures
+      .filter(fixture => {
+        const data = formData[fixture.id];
+        return data.homeScore !== "" && data.awayScore !== "";
+      })
+      .map(fixture => ({
+        playerId,
+        fixtureId: fixture.id,
+        homeScore: parseInt(formData[fixture.id].homeScore),
+        awayScore: parseInt(formData[fixture.id].awayScore),
+        isJoker: formData[fixture.id].isJoker,
+      }));
+
+    if (predictionsToSubmit.length === 0) {
+      toast({
+        title: "No predictions to submit",
+        description: "Please enter at least one prediction",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    submitPredictionsMutation.mutate(predictionsToSubmit);
+  };
+
+  const isDeadlinePassed = new Date() > new Date(gameweek.deadline);
+  const timeToDeadline = Math.max(0, new Date(gameweek.deadline).getTime() - new Date().getTime());
+  const hoursLeft = Math.floor(timeToDeadline / (1000 * 60 * 60));
+
+  const getTeamAbbreviation = (teamName: string) => {
+    const abbrevs: Record<string, string> = {
+      'Arsenal': 'ARS',
+      'Chelsea': 'CHE',
+      'Liverpool': 'LIV',
+      'Manchester City': 'MCI',
+      'Manchester United': 'MUN',
+      'Tottenham': 'TOT',
+      'Newcastle': 'NEW',
+      'Brighton': 'BHA',
+      'Aston Villa': 'AVL',
+      'West Ham': 'WHU',
+      'Crystal Palace': 'CRY',
+      'Everton': 'EVE',
+      'Fulham': 'FUL',
+      'Brentford': 'BRE',
+      'Nottingham Forest': 'NFO',
+      'Wolves': 'WOL',
+      'Sheffield United': 'SHU',
+      'Burnley': 'BUR',
+      'Bournemouth': 'BOU',
+      'Luton Town': 'LUT',
+    };
+    return abbrevs[teamName] || teamName.substring(0, 3).toUpperCase();
+  };
+
+  const getTeamColor = (teamName: string) => {
+    const colors: Record<string, string> = {
+      'Arsenal': 'bg-red-500',
+      'Chelsea': 'bg-blue-500',
+      'Liverpool': 'bg-red-600',
+      'Manchester City': 'bg-blue-800',
+      'Manchester United': 'bg-red-700',
+      'Tottenham': 'bg-white border-2 border-gray-300',
+      'Newcastle': 'bg-black',
+      'Brighton': 'bg-blue-400',
+      'Aston Villa': 'bg-purple-600',
+      'West Ham': 'bg-purple-800',
+      'Crystal Palace': 'bg-blue-600',
+      'Everton': 'bg-blue-700',
+      'Fulham': 'bg-black',
+      'Brentford': 'bg-red-400',
+      'Nottingham Forest': 'bg-red-800',
+      'Wolves': 'bg-yellow-600',
+      'Sheffield United': 'bg-red-600',
+      'Burnley': 'bg-purple-700',
+      'Bournemouth': 'bg-red-400',
+      'Luton Town': 'bg-orange-500',
+    };
+    return colors[teamName] || 'bg-gray-500';
+  };
+
+  return (
+    <div className="bg-white rounded-xl shadow-lg p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-football-navy">
+          <i className="fas fa-clipboard-list mr-2 text-football-green"></i>
+          {gameweek.name} Predictions
+        </h2>
+        <div className="flex items-center space-x-2">
+          <div className="text-sm text-gray-500">Deadline:</div>
+          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+            isDeadlinePassed 
+              ? "bg-red-100 text-red-800" 
+              : hoursLeft < 24 
+                ? "bg-red-100 text-red-800" 
+                : "bg-green-100 text-green-800"
+          }`}>
+            <i className="fas fa-clock mr-1"></i>
+            {isDeadlinePassed ? "Deadline passed" : `${hoursLeft}h left`}
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-6 p-4 bg-football-green bg-opacity-10 rounded-lg border border-football-green border-opacity-30">
+        <h3 className="font-semibold text-football-navy mb-2">
+          <i className="fas fa-star mr-2 text-football-gold"></i>Joker Available
+        </h3>
+        <p className="text-sm text-gray-600">Select one match to double your points this week. Choose wisely!</p>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {fixtures.map((fixture, index) => {
+          const data = formData[fixture.id] || { homeScore: "", awayScore: "", isJoker: false };
+          const kickoffTime = new Date(fixture.kickoffTime).toLocaleDateString('en-US', {
+            weekday: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false,
+          });
+
+          return (
+            <div key={fixture.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-football-green transition-colors">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="joker"
+                      checked={data.isJoker}
+                      onChange={(e) => handleJokerChange(fixture.id, e.target.checked)}
+                      className="w-4 h-4 text-football-green"
+                      disabled={isDeadlinePassed}
+                    />
+                    <label className={`text-sm font-medium ${data.isJoker ? 'text-football-gold' : 'text-gray-400'}`}>
+                      <i className={data.isJoker ? "fas fa-star" : "far fa-star"}></i>
+                    </label>
+                  </div>
+                  <div className="text-sm text-gray-500">{kickoffTime}</div>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="text-right">
+                      <div className="font-semibold text-football-navy">{fixture.homeTeam}</div>
+                    </div>
+                    <div className={`w-8 h-8 ${getTeamColor(fixture.homeTeam)} rounded-full flex items-center justify-center`}>
+                      <span className={`text-xs font-bold ${
+                        fixture.homeTeam === 'Tottenham' ? 'text-gray-700' : 'text-white'
+                      }`}>
+                        {getTeamAbbreviation(fixture.homeTeam)}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={data.homeScore}
+                      onChange={(e) => handleInputChange(fixture.id, 'homeScore', e.target.value)}
+                      className="w-16 h-10 text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20"
+                      placeholder="0"
+                      disabled={isDeadlinePassed}
+                    />
+                    <span className="text-gray-400 font-bold">-</span>
+                    <Input
+                      type="number"
+                      min="0"
+                      max="20"
+                      value={data.awayScore}
+                      onChange={(e) => handleInputChange(fixture.id, 'awayScore', e.target.value)}
+                      className="w-16 h-10 text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20"
+                      placeholder="0"
+                      disabled={isDeadlinePassed}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-8 h-8 ${getTeamColor(fixture.awayTeam)} rounded-full flex items-center justify-center`}>
+                      <span className={`text-xs font-bold ${
+                        fixture.awayTeam === 'Tottenham' ? 'text-gray-700' : 'text-white'
+                      }`}>
+                        {getTeamAbbreviation(fixture.awayTeam)}
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <div className="font-semibold text-football-navy">{fixture.awayTeam}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        <div className="flex items-center justify-between pt-6 border-t">
+          <div className="text-sm text-gray-500">
+            <i className="fas fa-info-circle mr-2"></i>
+            5 points for correct score, 3 points for correct result
+          </div>
+          <div className="flex space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isDeadlinePassed}
+            >
+              Save Draft
+            </Button>
+            <Button
+              type="submit"
+              disabled={submitPredictionsMutation.isPending || isDeadlinePassed}
+              className="bg-football-green hover:bg-green-600"
+            >
+              <i className="fas fa-paper-plane mr-2"></i>
+              {submitPredictionsMutation.isPending ? "Submitting..." : "Submit Predictions"}
+            </Button>
+          </div>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default PredictionForm;
