@@ -8,6 +8,15 @@ This is a full-stack TypeScript application for managing a fantasy football pred
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Changes
+
+**January 19, 2025**
+- Successfully migrated from in-memory storage to PostgreSQL database
+- Added Drizzle ORM with proper schema relations
+- Implemented automatic database seeding on startup
+- All fantasy football data now persists between sessions
+- User confirmed application working correctly with database
+
 ## System Architecture
 
 ### Frontend Architecture
