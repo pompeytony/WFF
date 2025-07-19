@@ -65,7 +65,7 @@ The application implements an interface-based storage pattern (`IStorage`) with 
 
 ### Scoring System
 - Correct score: 5 points (10 with joker)
-- Correct result (win/draw/loss): 5 points (10 with joker)
+- Correct result (win/draw/loss): 3 points (6 with joker)
 - Incorrect prediction: 0 points
 
 ## External Dependencies
