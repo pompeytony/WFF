@@ -6,6 +6,8 @@ import {
   type Prediction, type InsertPrediction,
   type WeeklyScore, type InsertWeeklyScore
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
   // Players
@@ -303,4 +305,151 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+export class DatabaseStorage implements IStorage {
+  async getPlayers(): Promise<Player[]> {
+    return await db.select().from(players);
+  }
+
+  async getPlayer(id: number): Promise<Player | undefined> {
+    const [player] = await db.select().from(players).where(eq(players.id, id));
+    return player || undefined;
+  }
+
+  async createPlayer(insertPlayer: InsertPlayer): Promise<Player> {
+    const [player] = await db
+      .insert(players)
+      .values(insertPlayer)
+      .returning();
+    return player;
+  }
+
+  // Gameweeks
+  async getGameweeks(): Promise<Gameweek[]> {
+    return await db.select().from(gameweeks);
+  }
+
+  async getActiveGameweek(): Promise<Gameweek | undefined> {
+    const [gameweek] = await db.select().from(gameweeks).where(eq(gameweeks.isActive, true));
+    return gameweek || undefined;
+  }
+
+  async createGameweek(insertGameweek: InsertGameweek): Promise<Gameweek> {
+    const [gameweek] = await db
+      .insert(gameweeks)
+      .values(insertGameweek)
+      .returning();
+    return gameweek;
+  }
+
+  async updateGameweekStatus(id: number, isActive?: boolean, isComplete?: boolean): Promise<void> {
+    const updates: any = {};
+    if (isActive !== undefined) updates.isActive = isActive;
+    if (isComplete !== undefined) updates.isComplete = isComplete;
+    
+    if (Object.keys(updates).length > 0) {
+      await db.update(gameweeks).set(updates).where(eq(gameweeks.id, id));
+    }
+  }
+
+  // Fixtures
+  async getFixtures(): Promise<Fixture[]> {
+    return await db.select().from(fixtures);
+  }
+
+  async getFixturesByGameweek(gameweekId: number): Promise<Fixture[]> {
+    return await db.select().from(fixtures).where(eq(fixtures.gameweekId, gameweekId));
+  }
+
+  async createFixture(insertFixture: InsertFixture): Promise<Fixture> {
+    const [fixture] = await db
+      .insert(fixtures)
+      .values(insertFixture)
+      .returning();
+    return fixture;
+  }
+
+  async updateFixtureResult(id: number, homeScore: number, awayScore: number): Promise<void> {
+    await db.update(fixtures)
+      .set({ homeScore, awayScore, isComplete: true })
+      .where(eq(fixtures.id, id));
+  }
+
+  // Predictions
+  async getPredictions(): Promise<Prediction[]> {
+    return await db.select().from(predictions);
+  }
+
+  async getPredictionsByPlayer(playerId: number): Promise<Prediction[]> {
+    return await db.select().from(predictions).where(eq(predictions.playerId, playerId));
+  }
+
+  async getPredictionsByGameweek(gameweekId: number): Promise<Prediction[]> {
+    const gameweekFixtures = await db.select({ id: fixtures.id }).from(fixtures).where(eq(fixtures.gameweekId, gameweekId));
+    const fixtureIds = gameweekFixtures.map(f => f.id);
+    
+    if (fixtureIds.length === 0) return [];
+    
+    return await db.select().from(predictions).where(
+      fixtureIds.length === 1 
+        ? eq(predictions.fixtureId, fixtureIds[0])
+        : fixtureIds.reduce((acc, id, index) => 
+            index === 0 ? eq(predictions.fixtureId, id) : acc, 
+            eq(predictions.fixtureId, fixtureIds[0])
+          )
+    );
+  }
+
+  async getPredictionByPlayerAndFixture(playerId: number, fixtureId: number): Promise<Prediction | undefined> {
+    const [prediction] = await db.select().from(predictions)
+      .where(and(eq(predictions.playerId, playerId), eq(predictions.fixtureId, fixtureId)));
+    return prediction || undefined;
+  }
+
+  async createPrediction(insertPrediction: InsertPrediction): Promise<Prediction> {
+    const [prediction] = await db
+      .insert(predictions)
+      .values(insertPrediction)
+      .returning();
+    return prediction;
+  }
+
+  async updatePrediction(id: number, prediction: Partial<InsertPrediction>): Promise<void> {
+    await db.update(predictions).set(prediction).where(eq(predictions.id, id));
+  }
+
+  async updatePredictionPoints(id: number, points: number): Promise<void> {
+    await db.update(predictions).set({ points }).where(eq(predictions.id, id));
+  }
+
+  // Weekly Scores
+  async getWeeklyScores(): Promise<WeeklyScore[]> {
+    return await db.select().from(weeklyScores);
+  }
+
+  async getWeeklyScoresByGameweek(gameweekId: number): Promise<WeeklyScore[]> {
+    return await db.select().from(weeklyScores).where(eq(weeklyScores.gameweekId, gameweekId));
+  }
+
+  async createWeeklyScore(insertWeeklyScore: InsertWeeklyScore): Promise<WeeklyScore> {
+    const [weeklyScore] = await db
+      .insert(weeklyScores)
+      .values(insertWeeklyScore)
+      .returning();
+    return weeklyScore;
+  }
+
+  async updateWeeklyScore(playerId: number, gameweekId: number, totalPoints: number, isManagerOfWeek = false): Promise<void> {
+    const [existing] = await db.select().from(weeklyScores)
+      .where(and(eq(weeklyScores.playerId, playerId), eq(weeklyScores.gameweekId, gameweekId)));
+    
+    if (existing) {
+      await db.update(weeklyScores)
+        .set({ totalPoints, isManagerOfWeek })
+        .where(and(eq(weeklyScores.playerId, playerId), eq(weeklyScores.gameweekId, gameweekId)));
+    } else {
+      await this.createWeeklyScore({ playerId, gameweekId, totalPoints });
+    }
+  }
+}
+
+export const storage = new DatabaseStorage();

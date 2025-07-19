@@ -1,4 +1,5 @@
 import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -45,6 +46,47 @@ export const weeklyScores = pgTable("weekly_scores", {
   totalPoints: integer("total_points").default(0),
   isManagerOfWeek: boolean("is_manager_of_week").default(false),
 });
+
+// Define relations
+export const playersRelations = relations(players, ({ many }) => ({
+  predictions: many(predictions),
+  weeklyScores: many(weeklyScores),
+}));
+
+export const gameweeksRelations = relations(gameweeks, ({ many }) => ({
+  fixtures: many(fixtures),
+  weeklyScores: many(weeklyScores),
+}));
+
+export const fixturesRelations = relations(fixtures, ({ one, many }) => ({
+  gameweek: one(gameweeks, {
+    fields: [fixtures.gameweekId],
+    references: [gameweeks.id],
+  }),
+  predictions: many(predictions),
+}));
+
+export const predictionsRelations = relations(predictions, ({ one }) => ({
+  player: one(players, {
+    fields: [predictions.playerId],
+    references: [players.id],
+  }),
+  fixture: one(fixtures, {
+    fields: [predictions.fixtureId],
+    references: [fixtures.id],
+  }),
+}));
+
+export const weeklyScoresRelations = relations(weeklyScores, ({ one }) => ({
+  player: one(players, {
+    fields: [weeklyScores.playerId],
+    references: [players.id],
+  }),
+  gameweek: one(gameweeks, {
+    fields: [weeklyScores.gameweekId],
+    references: [gameweeks.id],
+  }),
+}));
 
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,

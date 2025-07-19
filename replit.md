@@ -54,7 +54,7 @@ Preferred communication style: Simple, everyday language.
 - **Admin**: Match result entry and points calculation
 
 ### Data Storage Strategy
-The application implements an interface-based storage pattern (`IStorage`) with a memory-based implementation (`MemStorage`). This allows for easy testing and potential future database implementations while maintaining type safety.
+The application implements an interface-based storage pattern (`IStorage`) with a PostgreSQL database implementation (`DatabaseStorage`). The system uses Drizzle ORM for type-safe database operations and includes automatic database seeding on startup. The previous memory-based implementation (`MemStorage`) is maintained for reference and testing purposes.
 
 ## Data Flow
 
