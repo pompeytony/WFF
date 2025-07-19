@@ -252,7 +252,7 @@ async function calculatePredictionPoints(fixtureId: number) {
     if (prediction.homeScore === fixture.homeScore && prediction.awayScore === fixture.awayScore) {
       points = 5;
     }
-    // Check for correct result (3 points)
+    // Check for correct result (5 points)
     else {
       const predictedResult = prediction.homeScore > prediction.awayScore ? 'home' : 
                              prediction.homeScore < prediction.awayScore ? 'away' : 'draw';
@@ -260,7 +260,7 @@ async function calculatePredictionPoints(fixtureId: number) {
                           fixture.homeScore! < fixture.awayScore! ? 'away' : 'draw';
       
       if (predictedResult === actualResult) {
-        points = 3;
+        points = 5;
       }
     }
     

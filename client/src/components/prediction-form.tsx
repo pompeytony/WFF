@@ -280,7 +280,7 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
         <div className="flex items-center justify-between pt-6 border-t">
           <div className="text-sm text-gray-500">
             <i className="fas fa-info-circle mr-2"></i>
-            5 points for correct score, 3 points for correct result
+            5 points for correct score, 5 points for correct result
           </div>
           <div className="flex space-x-3">
             <Button

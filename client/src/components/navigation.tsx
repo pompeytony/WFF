@@ -17,8 +17,8 @@ const Navigation = () => {
         <div className="flex space-x-8">
           {navItems.map((item) => (
             <Link key={item.path} href={item.path}>
-              <a
-                className={`py-4 px-2 border-b-2 font-medium transition-colors ${
+              <div
+                className={`py-4 px-2 border-b-2 font-medium transition-colors cursor-pointer ${
                   location === item.path
                     ? "border-football-green text-football-green"
                     : "border-transparent text-gray-500 hover:text-football-green"
@@ -26,7 +26,7 @@ const Navigation = () => {
               >
                 <i className={`${item.icon} mr-2`}></i>
                 {item.label}
-              </a>
+              </div>
             </Link>
           ))}
         </div>
