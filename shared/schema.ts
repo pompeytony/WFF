@@ -35,8 +35,8 @@ export const players = pgTable("players", {
 export const gameweeks = pgTable("gameweeks", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(), // e.g., "Gameweek 15"
-  type: text("type").notNull(), // "premier-league" or "international"
-  deadline: timestamp("deadline").notNull(),
+  type: text("type").notNull(), // "premier-league", "international", or "mixed"
+  deadline: timestamp("deadline"),
   isActive: boolean("is_active").default(false),
   isComplete: boolean("is_complete").default(false),
 });
@@ -121,7 +121,8 @@ export const insertPlayerSchema = createInsertSchema(players).pick({
 export const insertGameweekSchema = createInsertSchema(gameweeks).pick({
   name: true,
   type: true,
-  deadline: true,
+}).extend({
+  deadline: z.string().optional(),
 });
 
 export const insertFixtureSchema = createInsertSchema(fixtures).pick({

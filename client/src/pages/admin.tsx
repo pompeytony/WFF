@@ -31,7 +31,8 @@ const Admin = () => {
   const [isAddGameweekOpen, setIsAddGameweekOpen] = useState(false);
   const [newGameweek, setNewGameweek] = useState({
     name: "",
-    type: "premier-league"
+    type: "premier-league",
+    deadline: ""
   });
 
   const { data: fixtures } = useQuery({
@@ -125,7 +126,8 @@ const Admin = () => {
       setIsAddGameweekOpen(false);
       setNewGameweek({
         name: "",
-        type: "premier-league"
+        type: "premier-league",
+        deadline: ""
       });
     },
     onError: (error: any) => {
@@ -185,10 +187,13 @@ const Admin = () => {
       return;
     }
 
-    addGameweekMutation.mutate({
+    const gameweekData = {
       name: newGameweek.name,
       type: newGameweek.type,
-    });
+      ...(newGameweek.deadline && { deadline: new Date(newGameweek.deadline).toISOString() })
+    };
+    
+    addGameweekMutation.mutate(gameweekData);
   };
 
   const incompleteFixtures = fixtures?.filter((f: any) => !f.isComplete) || [];
@@ -394,8 +399,19 @@ const Admin = () => {
                       <SelectContent>
                         <SelectItem value="premier-league">Premier League</SelectItem>
                         <SelectItem value="international">International</SelectItem>
+                        <SelectItem value="mixed">Mixed</SelectItem>
                       </SelectContent>
                     </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="gameweek-deadline">Deadline (Optional)</Label>
+                    <Input
+                      id="gameweek-deadline"
+                      type="datetime-local"
+                      value={newGameweek.deadline}
+                      onChange={(e) => setNewGameweek({...newGameweek, deadline: e.target.value})}
+                    />
                   </div>
 
                   <Button 
