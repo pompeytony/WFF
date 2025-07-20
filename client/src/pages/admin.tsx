@@ -123,16 +123,30 @@ const Admin = () => {
         description: "The new gameweek has been created.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/gameweeks"] });
-      setIsAddGameweekOpen(false);
-      setNewGameweek({
-        name: "",
-        type: "premier-league",
-        deadline: ""
-      });
     },
     onError: (error: any) => {
       toast({
         title: "Error creating gameweek",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const activateGameweekMutation = useMutation({
+    mutationFn: async (gameweekId: number) => {
+      return apiRequest("PATCH", `/api/gameweeks/${gameweekId}/activate`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: "Gameweek activated successfully!",
+        description: "This gameweek is now active for predictions.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/gameweeks"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error activating gameweek",
         description: error.message || "Please try again",
         variant: "destructive",
       });

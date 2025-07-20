@@ -199,6 +199,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/gameweeks/:id/activate", requireAdmin, async (req, res) => {
+    try {
+      const gameweekId = Number(req.params.id);
+      await storage.updateGameweekStatus(gameweekId, true, false);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error activating gameweek:", error);
+      res.status(500).json({ error: "Failed to activate gameweek" });
+    }
+  });
+
   // Fixtures
   app.get("/api/fixtures", async (req, res) => {
     const gameweekId = req.query.gameweekId;

@@ -1,15 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import PredictionForm from "@/components/prediction-form";
 import MiniLeagueTable from "@/components/mini-league-table";
 import UserStats from "@/components/user-stats";
 import RecentResults from "@/components/recent-results";
 
 const Dashboard = () => {
-  // Hardcoded player ID for demo - in real app this would come from auth
-  const playerId = 1;
+  const { user } = useAuth();
 
   const { data: dashboardData, isLoading, error } = useQuery({
-    queryKey: ["/api/dashboard", playerId],
+    queryKey: ["/api/dashboard", user?.id],
+    enabled: !!user?.id,
   });
 
   if (isLoading) {
@@ -57,14 +58,14 @@ const Dashboard = () => {
             gameweek={dashboardData.activeGameweek}
             fixtures={dashboardData.fixtures}
             predictions={dashboardData.predictions}
-            playerId={playerId}
+            playerId={user?.id}
           />
         </div>
 
         <div className="space-y-6">
           <MiniLeagueTable data={dashboardData.leagueTable} />
-          <UserStats playerId={playerId} />
-          <RecentResults results={dashboardData.recentResults} playerId={playerId} />
+          <UserStats playerId={user?.id} />
+          <RecentResults results={dashboardData.recentResults} playerId={user?.id} />
         </div>
       </div>
     </main>
