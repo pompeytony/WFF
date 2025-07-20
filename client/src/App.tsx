@@ -3,15 +3,34 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { useAuth } from "@/hooks/useAuth";
 import Navigation from "@/components/navigation";
 import Dashboard from "@/pages/dashboard";
 import LeagueTable from "@/pages/league-table";
 import Results from "@/pages/results";
 import Admin from "@/pages/admin";
 import Players from "@/pages/players";
+import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
 function Router() {
+  const { isAuthenticated, isLoading, user } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <i className="fas fa-spinner fa-spin text-4xl text-football-navy mb-4"></i>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Landing />;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -30,11 +49,26 @@ function Router() {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm text-gray-300">Welcome back,</p>
-                <p className="font-semibold">John Smith</p>
+                <p className="font-semibold">{user?.firstName || user?.email || 'Player'}</p>
               </div>
               <div className="w-10 h-10 bg-football-gray rounded-full flex items-center justify-center">
-                <i className="fas fa-user text-gray-300"></i>
+                {user?.profileImageUrl ? (
+                  <img 
+                    src={user.profileImageUrl} 
+                    alt="Profile" 
+                    className="w-full h-full rounded-full object-cover"
+                  />
+                ) : (
+                  <i className="fas fa-user text-gray-300"></i>
+                )}
               </div>
+              <button
+                onClick={() => window.location.href = '/api/logout'}
+                className="text-sm text-gray-300 hover:text-white"
+              >
+                <i className="fas fa-sign-out-alt mr-1"></i>
+                Logout
+              </button>
             </div>
           </div>
         </div>

@@ -1,7 +1,29 @@
-import { pgTable, text, serial, integer, boolean, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, timestamp, varchar, jsonb, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
+// User storage table for Replit Auth
+export const users = pgTable("users", {
+  id: varchar("id").primaryKey().notNull(),
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
@@ -89,6 +111,8 @@ export const weeklyScoresRelations = relations(weeklyScores, ({ one }) => ({
   }),
 }));
 
+export const upsertUserSchema = createInsertSchema(users);
+
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
   email: true,
@@ -126,6 +150,8 @@ export const updateFixtureResultSchema = z.object({
   awayScore: z.number().min(0),
 });
 
+export type UpsertUser = typeof users.$inferInsert;
+export type User = typeof users.$inferSelect;
 export type Player = typeof players.$inferSelect;
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Gameweek = typeof gameweeks.$inferSelect;

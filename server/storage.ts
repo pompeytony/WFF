@@ -1,5 +1,6 @@
 import { 
-  players, gameweeks, fixtures, predictions, weeklyScores,
+  users, players, gameweeks, fixtures, predictions, weeklyScores,
+  type User, type UpsertUser,
   type Player, type InsertPlayer,
   type Gameweek, type InsertGameweek,
   type Fixture, type InsertFixture,
@@ -10,6 +11,10 @@ import { db } from "./db";
 import { eq, and } from "drizzle-orm";
 
 export interface IStorage {
+  // User operations (mandatory for Replit Auth)
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
   // Players
   getPlayers(): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
@@ -46,6 +51,7 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  private users: Map<string, User> = new Map();
   private players: Map<number, Player> = new Map();
   private gameweeks: Map<number, Gameweek> = new Map();
   private fixtures: Map<number, Fixture> = new Map();
@@ -62,6 +68,25 @@ export class MemStorage implements IStorage {
     this.initializeTestData();
   }
 
+  // User operations (mandatory for Replit Auth)
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const user: User = {
+      id: userData.id,
+      email: userData.email || null,
+      firstName: userData.firstName || null,
+      lastName: userData.lastName || null,
+      profileImageUrl: userData.profileImageUrl || null,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.users.set(userData.id, user);
+    return user;
+  }
+
   private initializeTestData() {
     // Create test players
     const testPlayers = [
@@ -74,7 +99,7 @@ export class MemStorage implements IStorage {
 
     testPlayers.forEach(player => {
       const id = this.currentPlayerId++;
-      this.players.set(id, { ...player, id });
+      this.players.set(id, { ...player, id, isAdmin: false });
     });
 
     // Create active gameweek
@@ -168,7 +193,7 @@ export class MemStorage implements IStorage {
 
   async createPlayer(player: InsertPlayer): Promise<Player> {
     const id = this.currentPlayerId++;
-    const newPlayer: Player = { ...player, id };
+    const newPlayer: Player = { ...player, id, isAdmin: false };
     this.players.set(id, newPlayer);
     return newPlayer;
   }
@@ -285,7 +310,12 @@ export class MemStorage implements IStorage {
 
   async createPrediction(prediction: InsertPrediction): Promise<Prediction> {
     const id = this.currentPredictionId++;
-    const newPrediction: Prediction = { ...prediction, id, points: 0 };
+    const newPrediction: Prediction = { 
+      ...prediction, 
+      id, 
+      points: 0,
+      isJoker: prediction.isJoker || false 
+    };
     this.predictions.set(id, newPrediction);
     return newPrediction;
   }
@@ -318,6 +348,7 @@ export class MemStorage implements IStorage {
     const newWeeklyScore: WeeklyScore = {
       ...weeklyScore,
       id,
+      totalPoints: weeklyScore.totalPoints || 0,
       isManagerOfWeek: false,
     };
     const key = `${weeklyScore.playerId}-${weeklyScore.gameweekId}`;
@@ -338,6 +369,27 @@ export class MemStorage implements IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // User operations (mandatory for Replit Auth)
+  async getUser(id: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async upsertUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
+      .returning();
+    return user;
+  }
+
   async getPlayers(): Promise<Player[]> {
     return await db.select().from(players);
   }
