@@ -11,23 +11,14 @@ import {
   updateFixtureResultSchema
 } from "@shared/schema";
 
+// Simple in-memory auth store
+const activeTokens = new Map<string, number>(); // token -> userId
+
+function generateToken(): string {
+  return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Simple session middleware for basic auth
-  const sessionStore = MemoryStore(session);
-  
-  app.use(session({
-    secret: 'fantasy-football-secret',
-    resave: false,
-    saveUninitialized: true,
-    store: new sessionStore({
-      checkPeriod: 86400000 // prune expired entries every 24h
-    }),
-    cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
-      secure: false, // Set to false for development
-      httpOnly: true
-    }
-  }));
 
   // Simple auth routes
   app.post('/api/auth/simple-login', async (req, res) => {
@@ -43,19 +34,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         player = await storage.createPlayer({ name, email });
       }
 
-      // Set session
-      req.session.userId = player.id;
-      req.session.user = player;
+      // Generate token and store in memory
+      const token = generateToken();
+      activeTokens.set(token, player.id);
       
-      // Save session explicitly
-      req.session.save((err: any) => {
-        if (err) {
-          console.error("Session save error:", err);
-          return res.status(500).json({ error: "Session save failed" });
-        }
-        console.log("Login successful, session saved:", req.session);
-        res.json({ success: true, user: player });
-      });
+      console.log("Login successful, token generated:", token);
+      res.json({ success: true, user: player, token });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
@@ -64,15 +48,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      console.log("Session check:", req.session);
-      if (!req.session || !req.session.userId) {
-        console.log("No session or userId found");
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      console.log("Auth check - Token:", token);
+      
+      if (!token || !activeTokens.has(token)) {
+        console.log("No valid token found");
         return res.status(401).json({ message: "Unauthorized" });
       }
       
-      const player = await storage.getPlayer(req.session.userId);
+      const userId = activeTokens.get(token)!;
+      const player = await storage.getPlayer(userId);
       if (!player) {
-        console.log("Player not found for userId:", req.session.userId);
+        console.log("Player not found for userId:", userId);
         return res.status(401).json({ message: "Unauthorized" });
       }
       
@@ -81,6 +68,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
+    }
+  });
+
+  app.post('/api/auth/logout', async (req, res) => {
+    try {
+      const token = req.headers.authorization?.replace('Bearer ', '');
+      if (token && activeTokens.has(token)) {
+        activeTokens.delete(token);
+      }
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Logout failed" });
     }
   });
 

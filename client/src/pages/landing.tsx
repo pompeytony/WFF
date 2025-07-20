@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient, setAuthToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
@@ -14,9 +14,15 @@ export default function Landing() {
   const { toast } = useToast();
 
   const loginMutation = useMutation({
-    mutationFn: (data: { name: string; email: string }) =>
-      apiRequest("POST", "/api/auth/simple-login", data),
-    onSuccess: () => {
+    mutationFn: async (data: { name: string; email: string }) => {
+      const response = await apiRequest("POST", "/api/auth/simple-login", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log("Login response:", data);
+      if (data.token) {
+        setAuthToken(data.token);
+      }
       toast({
         title: "Welcome!",
         description: "You've successfully joined the league",

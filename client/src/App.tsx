@@ -56,8 +56,15 @@ function Router() {
               </div>
               <button
                 onClick={() => {
-                  fetch('/api/auth/logout', { method: 'POST' })
+                  const token = localStorage.getItem('auth_token');
+                  fetch('/api/auth/logout', { 
+                    method: 'POST',
+                    headers: {
+                      Authorization: `Bearer ${token}`
+                    }
+                  })
                     .then(() => {
+                      localStorage.removeItem('auth_token');
                       window.location.reload();
                     });
                 }}
