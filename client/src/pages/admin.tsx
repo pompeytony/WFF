@@ -17,6 +17,22 @@ const Admin = () => {
   const [selectedFixture, setSelectedFixture] = useState<Fixture | null>(null);
   const [homeScore, setHomeScore] = useState("");
   const [awayScore, setAwayScore] = useState("");
+  
+  // Add fixture form state
+  const [isAddFixtureOpen, setIsAddFixtureOpen] = useState(false);
+  const [newFixture, setNewFixture] = useState({
+    homeTeam: "",
+    awayTeam: "",
+    kickoffTime: "",
+    gameweekId: ""
+  });
+  
+  // Add gameweek form state
+  const [isAddGameweekOpen, setIsAddGameweekOpen] = useState(false);
+  const [newGameweek, setNewGameweek] = useState({
+    name: "",
+    type: "premier-league"
+  });
 
   const { data: fixtures } = useQuery({
     queryKey: ["/api/fixtures"],
@@ -69,6 +85,58 @@ const Admin = () => {
     },
   });
 
+  const addFixtureMutation = useMutation({
+    mutationFn: async (fixtureData: any) => {
+      return apiRequest("POST", "/api/fixtures", fixtureData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Fixture added successfully!",
+        description: "The new fixture has been created.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
+      setIsAddFixtureOpen(false);
+      setNewFixture({
+        homeTeam: "",
+        awayTeam: "",
+        kickoffTime: "",
+        gameweekId: ""
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error adding fixture",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const addGameweekMutation = useMutation({
+    mutationFn: async (gameweekData: any) => {
+      return apiRequest("POST", "/api/gameweeks", gameweekData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Gameweek created successfully!",
+        description: "The new gameweek has been created.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/gameweeks"] });
+      setIsAddGameweekOpen(false);
+      setNewGameweek({
+        name: "",
+        type: "premier-league"
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error creating gameweek",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleUpdateResult = (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedFixture || homeScore === "" || awayScore === "") {
@@ -84,6 +152,42 @@ const Admin = () => {
       fixtureId: selectedFixture.id,
       homeScore: parseInt(homeScore),
       awayScore: parseInt(awayScore),
+    });
+  };
+
+  const handleAddFixture = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newFixture.homeTeam || !newFixture.awayTeam || !newFixture.kickoffTime || !newFixture.gameweekId) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addFixtureMutation.mutate({
+      homeTeam: newFixture.homeTeam,
+      awayTeam: newFixture.awayTeam,
+      kickoffTime: new Date(newFixture.kickoffTime).toISOString(),
+      gameweekId: parseInt(newFixture.gameweekId),
+    });
+  };
+
+  const handleAddGameweek = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newGameweek.name) {
+      toast({
+        title: "Missing information",
+        description: "Please enter a gameweek name",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    addGameweekMutation.mutate({
+      name: newGameweek.name,
+      type: newGameweek.type,
     });
   };
 
@@ -187,10 +291,123 @@ const Admin = () => {
               </DialogContent>
             </Dialog>
 
-            <Button variant="outline" className="w-full">
-              <i className="fas fa-plus mr-2"></i>
-              Add New Fixtures
-            </Button>
+            <Dialog open={isAddFixtureOpen} onOpenChange={setIsAddFixtureOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <i className="fas fa-plus mr-2"></i>
+                  Add New Fixtures
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Fixture</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddFixture} className="space-y-4">
+                  <div>
+                    <Label htmlFor="gameweek-select">Gameweek</Label>
+                    <Select onValueChange={(value) => setNewFixture({...newFixture, gameweekId: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select gameweek" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {gameweeks?.map((gameweek: any) => (
+                          <SelectItem key={gameweek.id} value={gameweek.id.toString()}>
+                            {gameweek.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="home-team">Home Team</Label>
+                    <Input
+                      id="home-team"
+                      type="text"
+                      value={newFixture.homeTeam}
+                      onChange={(e) => setNewFixture({...newFixture, homeTeam: e.target.value})}
+                      placeholder="e.g. Arsenal"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="away-team">Away Team</Label>
+                    <Input
+                      id="away-team"
+                      type="text"
+                      value={newFixture.awayTeam}
+                      onChange={(e) => setNewFixture({...newFixture, awayTeam: e.target.value})}
+                      placeholder="e.g. Chelsea"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="kickoff-time">Kickoff Time</Label>
+                    <Input
+                      id="kickoff-time"
+                      type="datetime-local"
+                      value={newFixture.kickoffTime}
+                      onChange={(e) => setNewFixture({...newFixture, kickoffTime: e.target.value})}
+                    />
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-red-accent hover:bg-red-accent-dark"
+                    disabled={addFixtureMutation.isPending}
+                  >
+                    {addFixtureMutation.isPending ? "Adding..." : "Add Fixture"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            <Dialog open={isAddGameweekOpen} onOpenChange={setIsAddGameweekOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline" className="w-full">
+                  <i className="fas fa-calendar-plus mr-2"></i>
+                  Add New Gameweek
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Gameweek</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleAddGameweek} className="space-y-4">
+                  <div>
+                    <Label htmlFor="gameweek-name">Gameweek Name</Label>
+                    <Input
+                      id="gameweek-name"
+                      type="text"
+                      value={newGameweek.name}
+                      onChange={(e) => setNewGameweek({...newGameweek, name: e.target.value})}
+                      placeholder="e.g. Gameweek 16"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="gameweek-type">Type</Label>
+                    <Select onValueChange={(value) => setNewGameweek({...newGameweek, type: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="premier-league">Premier League</SelectItem>
+                        <SelectItem value="international">International</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-royal-blue hover:bg-royal-blue-dark"
+                    disabled={addGameweekMutation.isPending}
+                  >
+                    {addGameweekMutation.isPending ? "Creating..." : "Create Gameweek"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
           </CardContent>
         </Card>
 
