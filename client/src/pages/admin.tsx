@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Link } from "wouter";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -222,10 +223,12 @@ const Admin = () => {
               </div>
             </div>
 
-            <Button variant="outline" className="w-full">
-              <i className="fas fa-users mr-2"></i>
-              Manage Players
-            </Button>
+            <Link href="/players">
+              <Button variant="outline" className="w-full">
+                <i className="fas fa-users mr-2"></i>
+                Manage Players
+              </Button>
+            </Link>
 
             <Button variant="outline" className="w-full">
               <i className="fas fa-chart-bar mr-2"></i>

@@ -8,6 +8,7 @@ import Dashboard from "@/pages/dashboard";
 import LeagueTable from "@/pages/league-table";
 import Results from "@/pages/results";
 import Admin from "@/pages/admin";
+import Players from "@/pages/players";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -46,6 +47,7 @@ function Router() {
         <Route path="/league-table" component={LeagueTable} />
         <Route path="/results" component={Results} />
         <Route path="/admin" component={Admin} />
+        <Route path="/players" component={Players} />
         <Route component={NotFound} />
       </Switch>
     </div>

@@ -26,6 +26,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/players/:id", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      if (isNaN(playerId)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+      
+      await storage.deletePlayer(playerId);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to delete player" });
+    }
+  });
+
   // Gameweeks
   app.get("/api/gameweeks", async (req, res) => {
     const gameweeks = await storage.getGameweeks();

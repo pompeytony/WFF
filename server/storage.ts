@@ -14,6 +14,7 @@ export interface IStorage {
   getPlayers(): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
   createPlayer(player: InsertPlayer): Promise<Player>;
+  deletePlayer(id: number): Promise<void>;
   
   // Gameweeks
   getGameweeks(): Promise<Gameweek[]>;
@@ -171,6 +172,29 @@ export class MemStorage implements IStorage {
     return newPlayer;
   }
 
+  async deletePlayer(id: number): Promise<void> {
+    // Delete player and related data
+    this.players.delete(id);
+    
+    // Delete all predictions for this player
+    const predictionsToDelete = Array.from(this.predictions.entries())
+      .filter(([_, prediction]) => prediction.playerId === id)
+      .map(([predictionId]) => predictionId);
+    
+    predictionsToDelete.forEach(predictionId => {
+      this.predictions.delete(predictionId);
+    });
+    
+    // Delete all weekly scores for this player
+    const scoresToDelete = Array.from(this.weeklyScores.entries())
+      .filter(([_, score]) => score.playerId === id)
+      .map(([key]) => key);
+    
+    scoresToDelete.forEach(key => {
+      this.weeklyScores.delete(key);
+    });
+  }
+
   // Gameweeks
   async getGameweeks(): Promise<Gameweek[]> {
     return Array.from(this.gameweeks.values());
@@ -321,6 +345,13 @@ export class DatabaseStorage implements IStorage {
       .values(insertPlayer)
       .returning();
     return player;
+  }
+
+  async deletePlayer(id: number): Promise<void> {
+    // Delete related data first (cascading delete)
+    await db.delete(weeklyScores).where(eq(weeklyScores.playerId, id));
+    await db.delete(predictions).where(eq(predictions.playerId, id));
+    await db.delete(players).where(eq(players.id, id));
   }
 
   // Gameweeks
