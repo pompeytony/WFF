@@ -18,12 +18,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use(session({
     secret: 'fantasy-football-secret',
     resave: false,
-    saveUninitialized: false,
+    saveUninitialized: true,
     store: new sessionStore({
       checkPeriod: 86400000 // prune expired entries every 24h
     }),
     cookie: {
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 1 week
+      secure: false, // Set to false for development
+      httpOnly: true
     }
   }));
 

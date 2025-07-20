@@ -51,26 +51,26 @@ export default function Landing() {
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label htmlFor="name" className="text-white">Full Name</Label>
+                <Label htmlFor="name" className="text-white font-medium mb-2 block">Full Name</Label>
                 <Input
                   id="name"
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Enter your full name"
-                  className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:ring-football-green focus:border-football-green"
                   required
                 />
               </div>
               <div>
-                <Label htmlFor="email" className="text-white">Email Address</Label>
+                <Label htmlFor="email" className="text-white font-medium mb-2 block">Email Address</Label>
                 <Input
                   id="email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:ring-football-green focus:border-football-green"
                   required
                 />
               </div>
