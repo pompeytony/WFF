@@ -49,21 +49,18 @@ function Router() {
             <div className="flex items-center space-x-4">
               <div className="text-right">
                 <p className="text-sm text-gray-300">Welcome back,</p>
-                <p className="font-semibold">{user?.firstName || user?.email || 'Player'}</p>
+                <p className="font-semibold">{user?.name || user?.email || 'Player'}</p>
               </div>
               <div className="w-10 h-10 bg-football-gray rounded-full flex items-center justify-center">
-                {user?.profileImageUrl ? (
-                  <img 
-                    src={user.profileImageUrl} 
-                    alt="Profile" 
-                    className="w-full h-full rounded-full object-cover"
-                  />
-                ) : (
-                  <i className="fas fa-user text-gray-300"></i>
-                )}
+                <i className="fas fa-user text-gray-300"></i>
               </div>
               <button
-                onClick={() => window.location.href = '/api/logout'}
+                onClick={() => {
+                  fetch('/api/auth/logout', { method: 'POST' })
+                    .then(() => {
+                      window.location.reload();
+                    });
+                }}
                 className="text-sm text-gray-300 hover:text-white"
               >
                 <i className="fas fa-sign-out-alt mr-1"></i>

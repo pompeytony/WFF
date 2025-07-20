@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
-import { setupAuth, isAuthenticated } from "./replitAuth";
+import session from "express-session";
+import MemoryStore from "memorystore";
 import { storage } from "./storage";
 import { 
   insertPlayerSchema, 
@@ -11,19 +12,71 @@ import {
 } from "@shared/schema";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware
-  await setupAuth(app);
+  // Simple session middleware for basic auth
+  const sessionStore = MemoryStore(session);
+  
+  app.use(session({
+    secret: 'fantasy-football-secret',
+    resave: false,
+    saveUninitialized: false,
+    store: new sessionStore({
+      checkPeriod: 86400000 // prune expired entries every 24h
+    }),
+    cookie: {
+      maxAge: 7 * 24 * 60 * 60 * 1000 // 1 week
+    }
+  }));
 
-  // Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  // Simple auth routes
+  app.post('/api/auth/simple-login', async (req, res) => {
     try {
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
-      res.json(user);
+      const { name, email } = req.body;
+      if (!name || !email) {
+        return res.status(400).json({ error: "Name and email are required" });
+      }
+
+      // Find or create player
+      let player = await storage.getPlayerByEmail(email);
+      if (!player) {
+        player = await storage.createPlayer({ name, email });
+      }
+
+      // Set session
+      req.session.userId = player.id;
+      req.session.user = player;
+      
+      res.json({ success: true, user: player });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
+  app.get('/api/auth/user', async (req: any, res) => {
+    try {
+      if (!req.session.userId) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      const player = await storage.getPlayer(req.session.userId);
+      if (!player) {
+        return res.status(401).json({ message: "Unauthorized" });
+      }
+      
+      res.json(player);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
+  });
+
+  app.post('/api/auth/logout', (req, res) => {
+    req.session.destroy((err) => {
+      if (err) {
+        return res.status(500).json({ error: "Logout failed" });
+      }
+      res.json({ success: true });
+    });
   });
 
   // Players

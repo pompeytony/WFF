@@ -18,6 +18,7 @@ export interface IStorage {
   // Players
   getPlayers(): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
+  getPlayerByEmail(email: string): Promise<Player | undefined>;
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayer(id: number, updates: Partial<InsertPlayer>): Promise<void>;
   deletePlayer(id: number): Promise<void>;
@@ -189,6 +190,10 @@ export class MemStorage implements IStorage {
 
   async getPlayer(id: number): Promise<Player | undefined> {
     return this.players.get(id);
+  }
+
+  async getPlayerByEmail(email: string): Promise<Player | undefined> {
+    return Array.from(this.players.values()).find(p => p.email === email);
   }
 
   async createPlayer(player: InsertPlayer): Promise<Player> {
@@ -396,6 +401,11 @@ export class DatabaseStorage implements IStorage {
 
   async getPlayer(id: number): Promise<Player | undefined> {
     const [player] = await db.select().from(players).where(eq(players.id, id));
+    return player || undefined;
+  }
+
+  async getPlayerByEmail(email: string): Promise<Player | undefined> {
+    const [player] = await db.select().from(players).where(eq(players.email, email));
     return player || undefined;
   }
 

@@ -1,7 +1,106 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
+  const [showLogin, setShowLogin] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const { toast } = useToast();
+
+  const loginMutation = useMutation({
+    mutationFn: (data: { name: string; email: string }) =>
+      apiRequest("POST", "/api/auth/simple-login", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+      toast({
+        title: "Welcome!",
+        description: "You've successfully joined the league",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign in",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (name.trim() && email.trim()) {
+      loginMutation.mutate({ name: name.trim(), email: email.trim() });
+    }
+  };
+
+  if (showLogin) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-football-navy via-blue-900 to-football-navy flex items-center justify-center">
+        <Card className="w-full max-w-md bg-white/10 backdrop-blur-sm border-white/20">
+          <CardHeader>
+            <CardTitle className="text-white text-center text-2xl">
+              Join the League
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="name" className="text-white">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Enter your full name"
+                  className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="email" className="text-white">Email Address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="bg-white/20 border-white/30 text-white placeholder:text-white/70"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Button 
+                  type="submit" 
+                  className="w-full bg-football-green hover:bg-green-600"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending && (
+                    <i className="fas fa-spinner fa-spin mr-2"></i>
+                  )}
+                  Join League
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  className="w-full border-white/30 text-white hover:bg-white/10"
+                  onClick={() => setShowLogin(false)}
+                >
+                  Back
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-football-navy via-blue-900 to-football-navy">
       <div className="container mx-auto px-4 py-16">
@@ -15,10 +114,10 @@ export default function Landing() {
           
           <Button 
             className="bg-football-green hover:bg-green-600 text-white px-8 py-3 text-lg"
-            onClick={() => window.location.href = '/api/login'}
+            onClick={() => setShowLogin(true)}
           >
             <i className="fas fa-sign-in-alt mr-2"></i>
-            Sign In to Play
+            Join the League
           </Button>
         </div>
 
