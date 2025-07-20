@@ -129,7 +129,8 @@ export const insertFixtureSchema = createInsertSchema(fixtures).pick({
   gameweekId: true,
   homeTeam: true,
   awayTeam: true,
-  kickoffTime: true,
+}).extend({
+  kickoffTime: z.string().transform(str => new Date(str)),
 });
 
 export const insertPredictionSchema = createInsertSchema(predictions).pick({

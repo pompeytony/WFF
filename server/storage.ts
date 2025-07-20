@@ -479,19 +479,9 @@ export class DatabaseStorage implements IStorage {
   async createFixture(insertFixture: InsertFixture): Promise<Fixture> {
     console.log("DatabaseStorage createFixture received:", insertFixture);
     
-    // Transform the data for database insertion
-    const fixtureData = {
-      gameweekId: insertFixture.gameweekId,
-      homeTeam: insertFixture.homeTeam,
-      awayTeam: insertFixture.awayTeam,
-      kickoffTime: new Date(insertFixture.kickoffTime),
-    };
-    
-    console.log("DatabaseStorage transforming fixture to:", fixtureData);
-    
     const [fixture] = await db
       .insert(fixtures)
-      .values(fixtureData)
+      .values(insertFixture)
       .returning();
     return fixture;
   }
