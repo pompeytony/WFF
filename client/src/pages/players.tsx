@@ -37,10 +37,7 @@ export default function Players() {
 
   const addPlayerMutation = useMutation({
     mutationFn: (data: PlayerFormData) =>
-      apiRequest("/api/players", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("POST", "/api/players", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       toast({
@@ -61,9 +58,7 @@ export default function Players() {
 
   const deletePlayerMutation = useMutation({
     mutationFn: (playerId: number) =>
-      apiRequest(`/api/players/${playerId}`, {
-        method: "DELETE",
-      }),
+      apiRequest("DELETE", `/api/players/${playerId}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/players"] });
       toast({
