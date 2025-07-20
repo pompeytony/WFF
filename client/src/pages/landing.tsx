@@ -87,7 +87,7 @@ export default function Landing() {
               <div className="space-y-2">
                 <Button 
                   type="submit" 
-                  className="w-full bg-football-green hover:bg-green-600"
+                  className="w-full bg-red-accent hover:bg-red-accent-dark text-white font-semibold"
                   disabled={loginMutation.isPending}
                 >
                   {loginMutation.isPending && (
@@ -112,18 +112,18 @@ export default function Landing() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-football-navy via-blue-900 to-football-navy">
+    <div className="min-h-screen bg-gradient-to-br from-royal-blue-dark via-royal-blue to-royal-blue-light">
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-4">
             ⚽ Williams Friends & Family League
           </h1>
-          <p className="text-xl text-blue-100 mb-8">
+          <p className="text-xl text-white mb-8">
             Predict match results, compete with friends, and climb the leaderboard!
           </p>
           
           <Button 
-            className="bg-football-green hover:bg-green-600 text-white px-8 py-3 text-lg"
+            className="bg-red-accent hover:bg-red-accent-dark text-white px-8 py-3 text-lg font-semibold border-2 border-white shadow-lg"
             onClick={() => setShowLogin(true)}
           >
             <i className="fas fa-sign-in-alt mr-2"></i>
@@ -132,43 +132,43 @@ export default function Landing() {
         </div>
 
         <div className="grid md:grid-cols-3 gap-8 mt-16">
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="bg-white/95 backdrop-blur-sm border-2 border-white shadow-xl">
             <CardHeader>
-              <CardTitle className="text-white text-center">
-                <i className="fas fa-futbol text-football-gold text-3xl mb-3 block"></i>
+              <CardTitle className="text-royal-blue-dark text-center">
+                <i className="fas fa-futbol text-red-accent text-3xl mb-3 block"></i>
                 Make Predictions
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-blue-100 text-center">
+              <p className="text-gray-700 text-center">
                 Predict the exact scores of upcoming matches and use your joker wisely for double points!
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="bg-white/95 backdrop-blur-sm border-2 border-white shadow-xl">
             <CardHeader>
-              <CardTitle className="text-white text-center">
-                <i className="fas fa-trophy text-football-gold text-3xl mb-3 block"></i>
+              <CardTitle className="text-royal-blue-dark text-center">
+                <i className="fas fa-trophy text-red-accent text-3xl mb-3 block"></i>
                 Compete & Win
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-blue-100 text-center">
+              <p className="text-gray-700 text-center">
                 Climb the league table and become Manager of the Week. Track your progress throughout the season!
               </p>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/10 backdrop-blur-sm border-white/20">
+          <Card className="bg-white/95 backdrop-blur-sm border-2 border-white shadow-xl">
             <CardHeader>
-              <CardTitle className="text-white text-center">
-                <i className="fas fa-users text-football-gold text-3xl mb-3 block"></i>
+              <CardTitle className="text-royal-blue-dark text-center">
+                <i className="fas fa-users text-red-accent text-3xl mb-3 block"></i>
                 Play with Friends
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-blue-100 text-center">
+              <p className="text-gray-700 text-center">
                 Join your friends in exciting prediction battles and see who knows football best!
               </p>
             </CardContent>

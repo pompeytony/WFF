@@ -34,12 +34,12 @@ function Router() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-football-navy text-white shadow-lg">
+      <header className="bg-royal-blue-dark text-white shadow-lg">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-football-green rounded-lg flex items-center justify-center">
-                <i className="fas fa-futbol text-football-navy text-xl"></i>
+              <div className="w-10 h-10 bg-red-accent rounded-lg flex items-center justify-center">
+                <i className="fas fa-futbol text-white text-xl"></i>
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Williams Friends & Family League</h1>

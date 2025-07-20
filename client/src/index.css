@@ -24,11 +24,21 @@
   --ring: hsl(26, 15%, 6%);
   --radius: 0.5rem;
   
-  /* Custom colors for football theme */
-  --football-green: hsl(142, 100%, 50%);
-  --football-navy: hsl(215, 25%, 11%);
-  --football-gold: hsl(45, 100%, 50%);
-  --football-gray: hsl(215, 16%, 22%);
+  /* Royal Blue, White & Red theme colors */
+  --royal-blue: hsl(225, 73%, 57%);
+  --royal-blue-dark: hsl(225, 73%, 45%);
+  --royal-blue-light: hsl(225, 73%, 70%);
+  --red-accent: hsl(0, 84%, 60%);
+  --red-accent-dark: hsl(0, 84%, 50%);
+  --white-primary: hsl(0, 0%, 100%);
+  --gray-light: hsl(220, 14%, 96%);
+  --gray-medium: hsl(220, 9%, 46%);
+  
+  /* Keep old variables for compatibility but update colors */
+  --football-green: hsl(0, 84%, 60%); /* Now red accent */
+  --football-navy: hsl(225, 73%, 45%); /* Now royal blue dark */
+  --football-gold: hsl(225, 73%, 70%); /* Now royal blue light */
+  --football-gray: hsl(220, 9%, 46%); /* Now gray medium */
 }
 
 .dark {
@@ -64,12 +74,38 @@
 }
 
 @layer utilities {
+  /* Royal Blue utilities */
+  .royal-blue {
+    color: var(--royal-blue);
+  }
+  
+  .bg-royal-blue {
+    background-color: var(--royal-blue);
+  }
+  
+  .bg-royal-blue-dark {
+    background-color: var(--royal-blue-dark);
+  }
+  
+  .bg-royal-blue-light {
+    background-color: var(--royal-blue-light);
+  }
+  
+  .red-accent {
+    color: var(--red-accent);
+  }
+  
+  .bg-red-accent {
+    background-color: var(--red-accent);
+  }
+  
+  /* Keep old class names for compatibility */
   .football-green {
-    color: var(--football-green);
+    color: var(--red-accent);
   }
   
   .bg-football-green {
-    background-color: var(--football-green);
+    background-color: var(--red-accent);
   }
   
   .football-navy {
