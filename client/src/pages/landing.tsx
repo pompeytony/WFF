@@ -159,10 +159,11 @@ export default function Landing() {
                   </Button>
                   <Button 
                     type="button" 
-                    variant="outline" 
-                    className="w-full border-white/30 text-white hover:bg-white/10"
+                    variant="secondary" 
+                    className="w-full bg-football-gold text-football-navy hover:bg-football-gold/90 font-semibold"
                     onClick={() => setIsNewUser(true)}
                   >
+                    <i className="fas fa-user-plus mr-2"></i>
                     I'm a New Player
                   </Button>
                   <Button 
