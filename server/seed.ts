@@ -5,12 +5,17 @@ export async function seedDatabase() {
   console.log("🌱 Seeding database...");
 
   try {
+    // Test database connection first
+    console.log("🔍 Verifying database tables...");
+    
     // Check if data already exists
     const existingPlayers = await db.select().from(players);
     if (existingPlayers.length > 0) {
       console.log("📊 Database already has data, skipping seed");
       return;
     }
+    
+    console.log("📝 Database is empty, proceeding with seeding...");
 
     // Create test players
     const testPlayers = [
@@ -97,7 +102,19 @@ export async function seedDatabase() {
 
     console.log("🎉 Database seeding completed successfully!");
   } catch (error) {
-    console.error("❌ Error seeding database:", error);
-    throw error;
+    console.error("❌ Critical error during database seeding:");
+    console.error("Error details:", error);
+    
+    if (error instanceof Error) {
+      console.error("Error message:", error.message);
+      console.error("Stack trace:", error.stack);
+    }
+    
+    // Log specific database connection info for debugging
+    console.error("🔍 Database seeding debug info:");
+    console.error("- DATABASE_URL:", process.env.DATABASE_URL ? "✅ Set" : "❌ Missing");
+    
+    // Re-throw with more context
+    throw new Error(`Database seeding failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
