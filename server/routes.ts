@@ -213,11 +213,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/fixtures", requireAdmin, async (req, res) => {
     try {
+      console.log("Received fixture data:", req.body);
       const fixtureData = insertFixtureSchema.parse(req.body);
+      console.log("Parsed fixture data:", fixtureData);
       const fixture = await storage.createFixture(fixtureData);
       res.json(fixture);
     } catch (error) {
-      res.status(400).json({ error: "Invalid fixture data" });
+      console.error("Fixture creation error:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: "Invalid fixture data" });
+      }
     }
   });
 
