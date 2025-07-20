@@ -149,6 +149,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Public players endpoint for login dropdown
+  app.get("/api/players/public", async (req, res) => {
+    try {
+      const players = await storage.getPlayers();
+      // Only return basic info needed for login dropdown
+      const publicPlayers = players.map(p => ({ id: p.id, name: p.name, email: p.email }));
+      res.json(publicPlayers);
+    } catch (error) {
+      console.error("Error fetching players:", error);
+      res.status(500).json({ error: "Failed to fetch players" });
+    }
+  });
+
   // Players - Admin only routes
   app.get("/api/players", requireAdmin, async (req, res) => {
     const players = await storage.getPlayers();

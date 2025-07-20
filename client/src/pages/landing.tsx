@@ -18,7 +18,7 @@ export default function Landing() {
 
   // Fetch existing players for dropdown
   const { data: players } = useQuery({
-    queryKey: ["/api/players"],
+    queryKey: ["/api/players/public"],
     enabled: showLogin && !isNewUser,
   });
 
