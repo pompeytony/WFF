@@ -1,8 +1,8 @@
-# Fantasy Football League Application
+# Williams Friends & Family League Application
 
 ## Overview
 
-This is a full-stack TypeScript application for managing a fantasy football prediction league. Players make predictions on football match results and compete for points based on accuracy. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database using Drizzle ORM.
+This is a full-stack TypeScript application for managing the Williams Friends & Family League - a football prediction competition. Players make predictions on football match results and compete for points based on accuracy. The application features a modern React frontend with shadcn/ui components and an Express.js backend with PostgreSQL database using Drizzle ORM.
 
 ## User Preferences
 

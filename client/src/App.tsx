@@ -42,7 +42,7 @@ function Router() {
                 <i className="fas fa-futbol text-football-navy text-xl"></i>
               </div>
               <div>
-                <h1 className="text-2xl font-bold">Fantasy Football League</h1>
+                <h1 className="text-2xl font-bold">Williams Friends & Family League</h1>
                 <p className="text-gray-300 text-sm">Gameweek 15 • Premier League</p>
               </div>
             </div>
