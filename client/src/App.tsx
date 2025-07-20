@@ -78,14 +78,14 @@ function Router() {
         </div>
       </header>
 
-      <Navigation />
+      <Navigation user={user} />
 
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/league-table" component={LeagueTable} />
         <Route path="/results" component={Results} />
-        <Route path="/admin" component={Admin} />
-        <Route path="/players" component={Players} />
+        {user?.isAdmin && <Route path="/admin" component={Admin} />}
+        {user?.isAdmin && <Route path="/players" component={Players} />}
         <Route component={NotFound} />
       </Switch>
     </div>

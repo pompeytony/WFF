@@ -18,6 +18,37 @@ function generateToken(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
+// Middleware to require authentication
+async function requireAuth(req: any, res: any, next: any) {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    if (!token || !activeTokens.has(token)) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    const userId = activeTokens.get(token)!;
+    const player = await storage.getPlayer(userId);
+    if (!player) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+    
+    req.user = player;
+    next();
+  } catch (error) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+}
+
+// Middleware to require admin access
+async function requireAdmin(req: any, res: any, next: any) {
+  await requireAuth(req, res, () => {
+    if (!req.user?.isAdmin) {
+      return res.status(403).json({ message: "Admin access required" });
+    }
+    next();
+  });
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
 
   // Simple auth routes
@@ -93,13 +124,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Players
-  app.get("/api/players", async (req, res) => {
+  // Players - Admin only routes
+  app.get("/api/players", requireAdmin, async (req, res) => {
     const players = await storage.getPlayers();
     res.json(players);
   });
 
-  app.post("/api/players", async (req, res) => {
+  app.post("/api/players", requireAdmin, async (req, res) => {
     try {
       const playerData = insertPlayerSchema.parse(req.body);
       const player = await storage.createPlayer(playerData);
@@ -109,7 +140,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/players/:id", async (req, res) => {
+  app.patch("/api/players/:id", requireAdmin, async (req, res) => {
     try {
       const playerId = parseInt(req.params.id);
       if (isNaN(playerId)) {
@@ -123,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/players/:id", async (req, res) => {
+  app.delete("/api/players/:id", requireAdmin, async (req, res) => {
     try {
       const playerId = parseInt(req.params.id);
       if (isNaN(playerId)) {
@@ -151,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(activeGameweek);
   });
 
-  app.post("/api/gameweeks", async (req, res) => {
+  app.post("/api/gameweeks", requireAdmin, async (req, res) => {
     try {
       const gameweekData = insertGameweekSchema.parse(req.body);
       const gameweek = await storage.createGameweek(gameweekData);
@@ -173,7 +204,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/fixtures", async (req, res) => {
+  app.post("/api/fixtures", requireAdmin, async (req, res) => {
     try {
       const fixtureData = insertFixtureSchema.parse(req.body);
       const fixture = await storage.createFixture(fixtureData);
@@ -183,7 +214,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch("/api/fixtures/:id/result", async (req, res) => {
+  app.patch("/api/fixtures/:id/result", requireAdmin, async (req, res) => {
     try {
       const fixtureId = Number(req.params.id);
       const resultData = updateFixtureResultSchema.parse(req.body);

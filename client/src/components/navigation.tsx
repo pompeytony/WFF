@@ -1,14 +1,21 @@
 import { useLocation } from "wouter";
 import { Link } from "wouter";
 
-const Navigation = () => {
+interface NavigationProps {
+  user?: any;
+}
+
+const Navigation = ({ user }: NavigationProps) => {
   const [location] = useLocation();
 
   const navItems = [
     { path: "/", label: "Dashboard", icon: "fas fa-home" },
     { path: "/league-table", label: "League Table", icon: "fas fa-table" },
     { path: "/results", label: "Results", icon: "fas fa-history" },
-    { path: "/admin", label: "Admin", icon: "fas fa-cog" },
+    ...(user?.isAdmin ? [
+      { path: "/admin", label: "Admin", icon: "fas fa-cog" },
+      { path: "/players", label: "Players", icon: "fas fa-users" },
+    ] : []),
   ];
 
   return (
@@ -20,8 +27,8 @@ const Navigation = () => {
               <div
                 className={`py-4 px-2 border-b-2 font-medium transition-colors cursor-pointer ${
                   location === item.path
-                    ? "border-football-green text-football-green"
-                    : "border-transparent text-gray-500 hover:text-football-green"
+                    ? "border-red-accent text-red-accent"
+                    : "border-transparent text-gray-500 hover:text-red-accent"
                 }`}
               >
                 <i className={`${item.icon} mr-2`}></i>
