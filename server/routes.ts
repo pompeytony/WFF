@@ -77,6 +77,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.post('/api/auth/existing-login', async (req, res) => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      // Find existing player
+      const player = await storage.getPlayerByEmail(email);
+      if (!player) {
+        return res.status(404).json({ error: "Player not found with this email" });
+      }
+
+      // Generate token and store in memory
+      const token = generateToken();
+      activeTokens.set(token, player.id);
+      
+      console.log("Existing player login successful, token generated:", token);
+      res.json({ success: true, user: player, token });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+
   app.get('/api/auth/user', async (req: any, res) => {
     try {
       const token = req.headers.authorization?.replace('Bearer ', '');

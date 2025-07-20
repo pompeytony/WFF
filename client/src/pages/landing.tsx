@@ -3,19 +3,28 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMutation } from "@tanstack/react-query";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient, setAuthToken } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export default function Landing() {
   const [showLogin, setShowLogin] = useState(false);
-  const [name, setName] = useState("");
+  const [isNewUser, setIsNewUser] = useState(false);
+  const [selectedPlayerId, setSelectedPlayerId] = useState("");
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const { toast } = useToast();
 
-  const loginMutation = useMutation({
-    mutationFn: async (data: { name: string; email: string }) => {
-      const response = await apiRequest("POST", "/api/auth/simple-login", data);
+  // Fetch existing players for dropdown
+  const { data: players } = useQuery({
+    queryKey: ["/api/players"],
+    enabled: showLogin && !isNewUser,
+  });
+
+  const existingPlayerLoginMutation = useMutation({
+    mutationFn: async (data: { email: string }) => {
+      const response = await apiRequest("POST", "/api/auth/existing-login", data);
       return response.json();
     },
     onSuccess: (data) => {
@@ -24,10 +33,9 @@ export default function Landing() {
         setAuthToken(data.token);
       }
       toast({
-        title: "Welcome!",
-        description: "You've successfully joined the league",
+        title: "Welcome back!",
+        description: `Good to see you again, ${data.user?.name}!`,
       });
-      // Wait a moment then invalidate and refresh
       setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
         window.location.reload();
@@ -42,10 +50,55 @@ export default function Landing() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const newPlayerLoginMutation = useMutation({
+    mutationFn: async (data: { name: string; email: string }) => {
+      const response = await apiRequest("POST", "/api/auth/simple-login", data);
+      return response.json();
+    },
+    onSuccess: (data) => {
+      console.log("Login response:", data);
+      if (data.token) {
+        setAuthToken(data.token);
+      }
+      toast({
+        title: "Welcome!",
+        description: "You've successfully joined the league",
+      });
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        window.location.reload();
+      }, 1000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to sign in",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleExistingPlayerSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const playersArray = Array.isArray(players) ? players : [];
+    const selectedPlayer = playersArray.find((p: any) => p.id.toString() === selectedPlayerId);
+    if (selectedPlayer && email.trim()) {
+      if (selectedPlayer.email.toLowerCase() !== email.toLowerCase()) {
+        toast({
+          title: "Email mismatch",
+          description: "The email doesn't match the selected player",
+          variant: "destructive",
+        });
+        return;
+      }
+      existingPlayerLoginMutation.mutate({ email: selectedPlayer.email });
+    }
+  };
+
+  const handleNewPlayerSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim() && email.trim()) {
-      loginMutation.mutate({ name: name.trim(), email: email.trim() });
+      newPlayerLoginMutation.mutate({ name: name.trim(), email: email.trim() });
     }
   };
 
@@ -55,56 +108,134 @@ export default function Landing() {
         <Card className="w-full max-w-md bg-white/10 backdrop-blur-sm border-white/20">
           <CardHeader>
             <CardTitle className="text-white text-center text-2xl">
-              Join the League
+              {isNewUser ? "Join the League" : "Sign In"}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <Label htmlFor="name" className="text-white font-medium mb-2 block">Full Name</Label>
-                <Input
-                  id="name"
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter your full name"
-                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:ring-football-green focus:border-football-green"
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="email" className="text-white font-medium mb-2 block">Email Address</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500 focus:ring-football-green focus:border-football-green"
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Button 
-                  type="submit" 
-                  className="w-full bg-red-accent hover:bg-red-accent-dark text-white font-semibold"
-                  disabled={loginMutation.isPending}
-                >
-                  {loginMutation.isPending && (
-                    <i className="fas fa-spinner fa-spin mr-2"></i>
-                  )}
-                  Join League
-                </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  className="w-full border-white/30 text-white hover:bg-white/10"
-                  onClick={() => setShowLogin(false)}
-                >
-                  Back
-                </Button>
-              </div>
-            </form>
+            {!isNewUser ? (
+              // Existing player login
+              <form onSubmit={handleExistingPlayerSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="player-select" className="text-white font-medium mb-2 block">
+                    Select Your Name
+                  </Label>
+                  <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId}>
+                    <SelectTrigger className="bg-white border-gray-300 text-gray-900">
+                      <SelectValue placeholder="Choose your name from the list" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Array.isArray(players) && players.map((player: any) => (
+                        <SelectItem key={player.id} value={player.id.toString()}>
+                          {player.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="email" className="text-white font-medium mb-2 block">
+                    Confirm Your Email
+                  </Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email to confirm"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-red-accent hover:bg-red-accent-dark text-white font-semibold"
+                    disabled={existingPlayerLoginMutation.isPending || !selectedPlayerId}
+                  >
+                    {existingPlayerLoginMutation.isPending && (
+                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                    )}
+                    Sign In
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full border-white/30 text-white hover:bg-white/10"
+                    onClick={() => setIsNewUser(true)}
+                  >
+                    I'm a New Player
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full border-white/30 text-white hover:bg-white/10"
+                    onClick={() => setShowLogin(false)}
+                  >
+                    Back
+                  </Button>
+                </div>
+              </form>
+            ) : (
+              // New player registration
+              <form onSubmit={handleNewPlayerSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="name" className="text-white font-medium mb-2 block">Full Name</Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Enter your full name"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email" className="text-white font-medium mb-2 block">Email Address</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-500"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-red-accent hover:bg-red-accent-dark text-white font-semibold"
+                    disabled={newPlayerLoginMutation.isPending}
+                  >
+                    {newPlayerLoginMutation.isPending && (
+                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                    )}
+                    Join League
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full border-white/30 text-white hover:bg-white/10"
+                    onClick={() => {
+                      setIsNewUser(false);
+                      setName("");
+                      setEmail("");
+                    }}
+                  >
+                    Back to Existing Players
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    className="w-full border-white/30 text-white hover:bg-white/10"
+                    onClick={() => setShowLogin(false)}
+                  >
+                    Back to Home
+                  </Button>
+                </div>
+              </form>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -127,7 +258,7 @@ export default function Landing() {
             onClick={() => setShowLogin(true)}
           >
             <i className="fas fa-sign-in-alt mr-2"></i>
-            Join the League
+            Sign In / Join League
           </Button>
         </div>
 
