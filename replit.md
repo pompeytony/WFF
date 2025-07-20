@@ -26,6 +26,11 @@ Preferred communication style: Simple, everyday language.
 - Updated navigation to hide admin-only links for non-admin users
 - Applied royal blue and white color scheme with red trimmings throughout application
 - Fixed all text visibility issues on landing page
+- **FUNCTIONALITY RESTORED:** Fixed "Add New Fixtures" button with complete creation forms
+- Added "mixed" as third gameweek type option alongside Premier League and International
+- Fixed gameweek creation validation by making deadline field optional
+- Fixed fixture creation validation with proper string-to-Date transformation
+- Both admin forms now fully functional with proper error handling and debugging
 
 **January 19, 2025**
 - Successfully migrated from in-memory storage to PostgreSQL database
