@@ -47,7 +47,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       req.session.userId = player.id;
       req.session.user = player;
       
-      res.json({ success: true, user: player });
+      // Save session explicitly
+      req.session.save((err: any) => {
+        if (err) {
+          console.error("Session save error:", err);
+          return res.status(500).json({ error: "Session save failed" });
+        }
+        console.log("Login successful, session saved:", req.session);
+        res.json({ success: true, user: player });
+      });
     } catch (error) {
       console.error("Login error:", error);
       res.status(500).json({ error: "Login failed" });
@@ -56,15 +64,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get('/api/auth/user', async (req: any, res) => {
     try {
-      if (!req.session.userId) {
+      console.log("Session check:", req.session);
+      if (!req.session || !req.session.userId) {
+        console.log("No session or userId found");
         return res.status(401).json({ message: "Unauthorized" });
       }
       
       const player = await storage.getPlayer(req.session.userId);
       if (!player) {
+        console.log("Player not found for userId:", req.session.userId);
         return res.status(401).json({ message: "Unauthorized" });
       }
       
+      console.log("Returning user:", player);
       res.json(player);
     } catch (error) {
       console.error("Error fetching user:", error);

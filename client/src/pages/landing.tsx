@@ -17,11 +17,15 @@ export default function Landing() {
     mutationFn: (data: { name: string; email: string }) =>
       apiRequest("POST", "/api/auth/simple-login", data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       toast({
         title: "Welcome!",
         description: "You've successfully joined the league",
       });
+      // Wait a moment then invalidate and refresh
+      setTimeout(() => {
+        queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+        window.location.reload();
+      }, 1000);
     },
     onError: (error: any) => {
       toast({
