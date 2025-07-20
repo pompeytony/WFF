@@ -1,11 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
 
 const PredictionsOverview = () => {
+  const { toast } = useToast();
   const [selectedGameweekId, setSelectedGameweekId] = useState<string>("");
 
   const { data: gameweeks } = useQuery({
@@ -26,6 +29,37 @@ const PredictionsOverview = () => {
 
   const { data: players } = useQuery({
     queryKey: ["/api/players"],
+  });
+
+  const sendReminderMutation = useMutation({
+    mutationFn: async ({ type, fixtureId, playerIds }: { type: 'all' | 'fixture', fixtureId?: number, playerIds?: number[] }) => {
+      return apiRequest("POST", "/api/admin/send-reminders", { 
+        gameweekId: parseInt(targetGameweekId), 
+        type, 
+        fixtureId, 
+        playerIds 
+      });
+    },
+    onSuccess: (_, variables) => {
+      if (variables.type === 'all') {
+        toast({
+          title: "Reminders sent successfully!",
+          description: "All players with missing predictions have been notified.",
+        });
+      } else {
+        toast({
+          title: "Fixture reminder sent!",
+          description: "Players missing this prediction have been notified.",
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error sending reminders",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
   });
 
   if (isLoading) {
@@ -155,9 +189,25 @@ const PredictionsOverview = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-football-navy">
-                  <i className="fas fa-exclamation-triangle mr-2 text-red-accent"></i>
-                  Players Needing Reminders
+                <CardTitle className="text-football-navy flex items-center justify-between">
+                  <div>
+                    <i className="fas fa-exclamation-triangle mr-2 text-red-accent"></i>
+                    Players Needing Reminders
+                  </div>
+                  {predictionsOverview.playersPending.length > 0 && (
+                    <Button
+                      size="sm"
+                      onClick={() => sendReminderMutation.mutate({ 
+                        type: 'all',
+                        playerIds: predictionsOverview.playersPending.map((p: any) => p.id)
+                      })}
+                      disabled={sendReminderMutation.isPending}
+                      className="bg-red-accent hover:bg-red-accent-dark"
+                    >
+                      <i className="fas fa-bullhorn mr-1"></i>
+                      Remind All
+                    </Button>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -171,9 +221,24 @@ const PredictionsOverview = () => {
                           <span className="font-medium">{player.name}</span>
                           <div className="text-sm text-gray-600">{player.email}</div>
                         </div>
-                        <Badge variant="destructive">
-                          {player.predictionsCount}/{predictionsOverview.totalFixtures}
-                        </Badge>
+                        <div className="flex items-center space-x-2">
+                          <Badge variant="destructive">
+                            {player.predictionsCount}/{predictionsOverview.totalFixtures}
+                          </Badge>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => sendReminderMutation.mutate({ 
+                              type: 'fixture', 
+                              playerIds: [player.id] 
+                            })}
+                            disabled={sendReminderMutation.isPending}
+                            className="text-xs"
+                          >
+                            <i className="fas fa-envelope mr-1"></i>
+                            Remind
+                          </Button>
+                        </div>
                       </div>
                     ))}
                   </div>
