@@ -503,6 +503,13 @@ const Admin = () => {
               </Button>
             </Link>
 
+            <Link href="/predictions-overview">
+              <Button variant="outline" className="w-full">
+                <i className="fas fa-clipboard-list mr-2"></i>
+                View Player Predictions
+              </Button>
+            </Link>
+
             <Button variant="outline" className="w-full">
               <i className="fas fa-chart-bar mr-2"></i>
               Generate Reports

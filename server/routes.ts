@@ -210,6 +210,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/predictions-overview/:gameweekId", requireAdmin, async (req, res) => {
+    try {
+      const gameweekId = Number(req.params.gameweekId);
+      const overview = await storage.getPredictionsOverview(gameweekId);
+      res.json(overview);
+    } catch (error) {
+      console.error("Error fetching predictions overview:", error);
+      res.status(500).json({ error: "Failed to fetch predictions overview" });
+    }
+  });
+
   // Fixtures
   app.get("/api/fixtures", async (req, res) => {
     const gameweekId = req.query.gameweekId;

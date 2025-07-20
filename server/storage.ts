@@ -49,6 +49,9 @@ export interface IStorage {
   getWeeklyScoresByGameweek(gameweekId: number): Promise<WeeklyScore[]>;
   createWeeklyScore(weeklyScore: InsertWeeklyScore): Promise<WeeklyScore>;
   updateWeeklyScore(playerId: number, gameweekId: number, totalPoints: number, isManagerOfWeek?: boolean): Promise<void>;
+
+  // Admin operations
+  getPredictionsOverview(gameweekId: number): Promise<any>;
 }
 
 export class MemStorage implements IStorage {
@@ -567,6 +570,83 @@ export class DatabaseStorage implements IStorage {
     } else {
       await this.createWeeklyScore({ playerId, gameweekId, totalPoints });
     }
+  }
+
+  // Admin operations
+  async getPredictionsOverview(gameweekId: number): Promise<any> {
+    // Get all players
+    const allPlayers = await db.select().from(players);
+    
+    // Get all fixtures for this gameweek
+    const gameweekFixtures = await db.select()
+      .from(fixtures)
+      .where(eq(fixtures.gameweekId, gameweekId));
+    
+    // Get all predictions for this gameweek
+    const gameweekPredictions = await db.select({
+      id: predictions.id,
+      playerId: predictions.playerId,
+      fixtureId: predictions.fixtureId,
+      playerName: players.name,
+      playerEmail: players.email,
+    })
+    .from(predictions)
+    .innerJoin(players, eq(predictions.playerId, players.id))
+    .innerJoin(fixtures, eq(predictions.fixtureId, fixtures.id))
+    .where(eq(fixtures.gameweekId, gameweekId));
+
+    // Calculate player statistics
+    const playerStats = new Map();
+    allPlayers.forEach(player => {
+      playerStats.set(player.id, {
+        id: player.id,
+        name: player.name,
+        email: player.email,
+        predictionsCount: 0
+      });
+    });
+
+    gameweekPredictions.forEach(prediction => {
+      const stats = playerStats.get(prediction.playerId);
+      if (stats) {
+        stats.predictionsCount++;
+      }
+    });
+
+    const playersCompleted = Array.from(playerStats.values())
+      .filter(player => player.predictionsCount === gameweekFixtures.length);
+    
+    const playersPending = Array.from(playerStats.values())
+      .filter(player => player.predictionsCount < gameweekFixtures.length);
+
+    // Calculate fixture breakdown
+    const fixtureBreakdown = await Promise.all(gameweekFixtures.map(async (fixture) => {
+      const fixturePredictions = gameweekPredictions.filter(p => p.fixtureId === fixture.id);
+      const missingPlayers = allPlayers.filter(player => 
+        !fixturePredictions.some(p => p.playerId === player.id)
+      );
+
+      return {
+        id: fixture.id,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+        kickoffTime: fixture.kickoffTime,
+        predictionsCount: fixturePredictions.length,
+        missingPlayers: missingPlayers.map(p => ({ id: p.id, name: p.name }))
+      };
+    }));
+
+    return {
+      summary: {
+        totalPlayers: allPlayers.length,
+        playersSubmitted: playersCompleted.length,
+        playersPending: playersPending.length,
+      },
+      totalFixtures: gameweekFixtures.length,
+      playersCompleted,
+      playersPending,
+      fixtureBreakdown
+    };
   }
 }
 

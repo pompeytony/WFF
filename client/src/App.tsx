@@ -10,6 +10,7 @@ import LeagueTable from "@/pages/league-table";
 import Results from "@/pages/results";
 import Admin from "@/pages/admin";
 import Players from "@/pages/players";
+import PredictionsOverview from "@/pages/predictions-overview";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
 
@@ -86,6 +87,7 @@ function Router() {
         <Route path="/results" component={Results} />
         {user?.isAdmin && <Route path="/admin" component={Admin} />}
         {user?.isAdmin && <Route path="/players" component={Players} />}
+        {user?.isAdmin && <Route path="/predictions-overview" component={PredictionsOverview} />}
         <Route component={NotFound} />
       </Switch>
     </div>

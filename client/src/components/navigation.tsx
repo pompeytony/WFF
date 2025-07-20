@@ -15,6 +15,7 @@ const Navigation = ({ user }: NavigationProps) => {
     ...(user?.isAdmin ? [
       { path: "/admin", label: "Admin", icon: "fas fa-cog" },
       { path: "/players", label: "Players", icon: "fas fa-users" },
+      { path: "/predictions-overview", label: "Predictions", icon: "fas fa-clipboard-list" },
     ] : []),
   ];
 
