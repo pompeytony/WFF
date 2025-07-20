@@ -184,11 +184,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/gameweeks", requireAdmin, async (req, res) => {
     try {
+      console.log("Received gameweek data:", req.body);
       const gameweekData = insertGameweekSchema.parse(req.body);
+      console.log("Parsed gameweek data:", gameweekData);
       const gameweek = await storage.createGameweek(gameweekData);
       res.json(gameweek);
     } catch (error) {
-      res.status(400).json({ error: "Invalid gameweek data" });
+      console.error("Gameweek creation error:", error);
+      if (error instanceof Error) {
+        res.status(400).json({ error: error.message });
+      } else {
+        res.status(400).json({ error: "Invalid gameweek data" });
+      }
     }
   });
 

@@ -439,9 +439,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createGameweek(insertGameweek: InsertGameweek): Promise<Gameweek> {
+    console.log("DatabaseStorage createGameweek received:", insertGameweek);
+    
+    // Transform the data for database insertion
+    const gameweekData = {
+      name: insertGameweek.name,
+      type: insertGameweek.type,
+      deadline: insertGameweek.deadline ? new Date(insertGameweek.deadline) : null,
+    };
+    
+    console.log("DatabaseStorage transforming to:", gameweekData);
+    
     const [gameweek] = await db
       .insert(gameweeks)
-      .values(insertGameweek)
+      .values(gameweekData)
       .returning();
     return gameweek;
   }
