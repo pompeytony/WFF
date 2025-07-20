@@ -441,15 +441,41 @@ const Admin = () => {
           </CardContent>
         </Card>
 
-        {/* Score Management */}
+        {/* Gameweek Management */}
         <Card>
           <CardHeader>
             <CardTitle className="text-football-navy">
-              <i className="fas fa-calculator mr-2 text-football-gold"></i>
-              Score Management
+              <i className="fas fa-calendar mr-2 text-football-gold"></i>
+              Gameweek Management
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <Label>Activate Gameweek</Label>
+              <div className="space-y-2 mt-2">
+                {gameweeks?.map((gameweek: any) => (
+                  <div key={gameweek.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <span className="font-medium">{gameweek.name}</span>
+                      <span className="ml-2 text-sm text-gray-600">({gameweek.type})</span>
+                      {gameweek.isActive && (
+                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Active</span>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      onClick={() => activateGameweekMutation.mutate(gameweek.id)}
+                      disabled={activateGameweekMutation.isPending || gameweek.isActive}
+                      className="bg-royal-blue hover:bg-royal-blue-dark"
+                    >
+                      <i className="fas fa-play mr-1"></i>
+                      {gameweek.isActive ? "Active" : "Activate"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+            
             <div>
               <Label>Calculate Weekly Scores</Label>
               <div className="space-y-2 mt-2">
