@@ -14,6 +14,7 @@ export interface IStorage {
   getPlayers(): Promise<Player[]>;
   getPlayer(id: number): Promise<Player | undefined>;
   createPlayer(player: InsertPlayer): Promise<Player>;
+  updatePlayer(id: number, updates: Partial<InsertPlayer>): Promise<void>;
   deletePlayer(id: number): Promise<void>;
   
   // Gameweeks
@@ -170,6 +171,13 @@ export class MemStorage implements IStorage {
     const newPlayer: Player = { ...player, id };
     this.players.set(id, newPlayer);
     return newPlayer;
+  }
+
+  async updatePlayer(id: number, updates: Partial<InsertPlayer>): Promise<void> {
+    const player = this.players.get(id);
+    if (player) {
+      Object.assign(player, updates);
+    }
   }
 
   async deletePlayer(id: number): Promise<void> {
@@ -345,6 +353,10 @@ export class DatabaseStorage implements IStorage {
       .values(insertPlayer)
       .returning();
     return player;
+  }
+
+  async updatePlayer(id: number, updates: Partial<InsertPlayer>): Promise<void> {
+    await db.update(players).set(updates).where(eq(players.id, id));
   }
 
   async deletePlayer(id: number): Promise<void> {

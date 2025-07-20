@@ -7,6 +7,7 @@ export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  isAdmin: boolean("is_admin").default(false),
 });
 
 export const gameweeks = pgTable("gameweeks", {

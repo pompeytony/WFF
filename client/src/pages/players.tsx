@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -22,6 +23,8 @@ type PlayerFormData = z.infer<typeof playerSchema>;
 export default function Players() {
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<any>(null);
 
   const { data: players, isLoading } = useQuery({
     queryKey: ["/api/players"],
@@ -32,6 +35,15 @@ export default function Players() {
     defaultValues: {
       name: "",
       email: "",
+    },
+  });
+
+  const editForm = useForm<PlayerFormData & { isAdmin: boolean }>({
+    resolver: zodResolver(playerSchema.extend({ isAdmin: z.boolean() })),
+    defaultValues: {
+      name: "",
+      email: "",
+      isAdmin: false,
     },
   });
 
@@ -51,6 +63,28 @@ export default function Players() {
       toast({
         title: "Error",
         description: error.message || "Failed to add player",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePlayerMutation = useMutation({
+    mutationFn: ({ playerId, data }: { playerId: number; data: any }) =>
+      apiRequest("PATCH", `/api/players/${playerId}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      toast({
+        title: "Success",
+        description: "Player updated successfully",
+      });
+      setIsEditDialogOpen(false);
+      setEditingPlayer(null);
+      editForm.reset();
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update player",
         variant: "destructive",
       });
     },
@@ -77,6 +111,25 @@ export default function Players() {
 
   const onSubmit = (data: PlayerFormData) => {
     addPlayerMutation.mutate(data);
+  };
+
+  const onEditSubmit = (data: PlayerFormData & { isAdmin: boolean }) => {
+    if (editingPlayer) {
+      updatePlayerMutation.mutate({ 
+        playerId: editingPlayer.id, 
+        data: { name: data.name, email: data.email, isAdmin: data.isAdmin }
+      });
+    }
+  };
+
+  const handleEditPlayer = (player: any) => {
+    setEditingPlayer(player);
+    editForm.reset({
+      name: player.name,
+      email: player.email,
+      isAdmin: player.isAdmin || false,
+    });
+    setIsEditDialogOpen(true);
   };
 
   if (isLoading) {
@@ -165,6 +218,86 @@ export default function Players() {
             </Form>
           </DialogContent>
         </Dialog>
+
+        {/* Edit Player Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Player</DialogTitle>
+            </DialogHeader>
+            <Form {...editForm}>
+              <form onSubmit={editForm.handleSubmit(onEditSubmit)} className="space-y-4">
+                <FormField
+                  control={editForm.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter player's full name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input type="email" placeholder="Enter player's email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="isAdmin"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>
+                          Administrator Access
+                        </FormLabel>
+                        <p className="text-sm text-muted-foreground">
+                          Grant this player admin privileges to manage the league
+                        </p>
+                      </div>
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsEditDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={updatePlayerMutation.isPending}
+                    className="bg-football-green hover:bg-green-600"
+                  >
+                    {updatePlayerMutation.isPending && (
+                      <i className="fas fa-spinner fa-spin mr-2"></i>
+                    )}
+                    Update Player
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
       </div>
 
       <div className="grid gap-6">
@@ -198,15 +331,26 @@ export default function Players() {
                   >
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-football-navy rounded-full flex items-center justify-center">
-                        <i className="fas fa-user text-white"></i>
+                        <i className={`fas ${player.isAdmin ? 'fa-crown' : 'fa-user'} text-white`}></i>
                       </div>
                       <div>
-                        <h3 className="font-semibold text-football-navy">{player.name}</h3>
+                        <div className="flex items-center space-x-2">
+                          <h3 className="font-semibold text-football-navy">{player.name}</h3>
+                          {player.isAdmin && (
+                            <span className="px-2 py-1 bg-football-gold text-football-navy text-xs font-semibold rounded-full">
+                              Admin
+                            </span>
+                          )}
+                        </div>
                         <p className="text-gray-600 text-sm">{player.email}</p>
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Button size="sm" variant="outline">
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleEditPlayer(player)}
+                      >
                         <i className="fas fa-edit mr-1"></i>
                         Edit
                       </Button>

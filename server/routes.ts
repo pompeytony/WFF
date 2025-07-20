@@ -26,6 +26,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/players/:id", async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      if (isNaN(playerId)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+      
+      await storage.updatePlayer(playerId, req.body);
+      res.json({ success: true });
+    } catch (error) {
+      res.status(400).json({ error: "Failed to update player" });
+    }
+  });
+
   app.delete("/api/players/:id", async (req, res) => {
     try {
       const playerId = parseInt(req.params.id);
