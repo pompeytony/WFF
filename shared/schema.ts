@@ -25,15 +25,7 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const teams = pgTable("teams", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  shortName: text("short_name").notNull(), // e.g., "MAN UTD", "ENGLAND"
-  badgeUrl: text("badge_url").notNull(), // SVG or PNG URL for team badge
-  league: text("league").notNull(), // "premier-league", "championship", "league-one", "league-two", "international"
-  continent: text("continent"), // Only for international teams: "europe", "south-america", "africa", "asia", "north-america", "oceania"
-  country: text("country"), // Country code for international teams or club location
-});
+
 
 export const players = pgTable("players", {
   id: serial("id").primaryKey(),
@@ -54,15 +46,12 @@ export const gameweeks = pgTable("gameweeks", {
 export const fixtures = pgTable("fixtures", {
   id: serial("id").primaryKey(),
   gameweekId: integer("gameweek_id").references(() => gameweeks.id).notNull(),
-  homeTeamId: integer("home_team_id").references(() => teams.id), // Make nullable for migration
-  awayTeamId: integer("away_team_id").references(() => teams.id), // Make nullable for migration
+  homeTeam: text("home_team").notNull(),
+  awayTeam: text("away_team").notNull(),
   kickoffTime: timestamp("kickoff_time").notNull(),
   homeScore: integer("home_score"),
   awayScore: integer("away_score"),
   isComplete: boolean("is_complete").default(false),
-  // Keep legacy fields for backwards compatibility during migration
-  homeTeam: text("home_team"),
-  awayTeam: text("away_team"),
 });
 
 export const predictions = pgTable("predictions", {
@@ -84,10 +73,6 @@ export const weeklyScores = pgTable("weekly_scores", {
 });
 
 // Define relations
-export const teamsRelations = relations(teams, ({ many }) => ({
-  homeFixtures: many(fixtures, { relationName: "homeTeam" }),
-  awayFixtures: many(fixtures, { relationName: "awayTeam" }),
-}));
 
 export const playersRelations = relations(players, ({ many }) => ({
   predictions: many(predictions),
@@ -103,16 +88,6 @@ export const fixturesRelations = relations(fixtures, ({ one, many }) => ({
   gameweek: one(gameweeks, {
     fields: [fixtures.gameweekId],
     references: [gameweeks.id],
-  }),
-  homeTeam: one(teams, {
-    fields: [fixtures.homeTeamId],
-    references: [teams.id],
-    relationName: "homeTeam",
-  }),
-  awayTeam: one(teams, {
-    fields: [fixtures.awayTeamId],
-    references: [teams.id],
-    relationName: "awayTeam",
   }),
   predictions: many(predictions),
 }));
@@ -161,14 +136,7 @@ export const insertFixtureSchema = createInsertSchema(fixtures).pick({
   kickoffTime: z.string().transform(str => new Date(str)),
 });
 
-export const insertTeamSchema = createInsertSchema(teams).pick({
-  name: true,
-  shortName: true,
-  badgeUrl: true,
-  league: true,
-  continent: true,
-  country: true,
-});
+
 
 export const insertPredictionSchema = createInsertSchema(predictions).pick({
   playerId: true,
@@ -189,26 +157,16 @@ export const updateFixtureResultSchema = z.object({
   awayScore: z.number().min(0),
 });
 
-// Update fixture schema to support new team-based fixtures
-export const insertFixtureWithTeamsSchema = createInsertSchema(fixtures).pick({
-  gameweekId: true,
-  homeTeamId: true,
-  awayTeamId: true,
-}).extend({
-  kickoffTime: z.string().transform(str => new Date(str)),
-});
+
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
-export type Team = typeof teams.$inferSelect;
-export type InsertTeam = z.infer<typeof insertTeamSchema>;
 export type Player = typeof players.$inferSelect;
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
 export type Gameweek = typeof gameweeks.$inferSelect;
 export type InsertGameweek = z.infer<typeof insertGameweekSchema>;
 export type Fixture = typeof fixtures.$inferSelect;
 export type InsertFixture = z.infer<typeof insertFixtureSchema>;
-export type InsertFixtureWithTeams = z.infer<typeof insertFixtureWithTeamsSchema>;
 export type Prediction = typeof predictions.$inferSelect;
 export type InsertPrediction = z.infer<typeof insertPredictionSchema>;
 export type WeeklyScore = typeof weeklyScores.$inferSelect;

@@ -162,42 +162,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Teams endpoints - Public access for fixture creation and display
-  app.get('/api/teams', async (req, res) => {
-    try {
-      const { league, continent } = req.query;
-      let teams;
-      
-      if (league) {
-        teams = await storage.getTeamsByLeague(league as string);
-      } else if (continent) {
-        teams = await storage.getTeamsByContinent(continent as string);
-      } else {
-        teams = await storage.getTeams();
-      }
-      
-      res.json(teams);
-    } catch (error) {
-      console.error('Error fetching teams:', error);
-      res.status(500).json({ error: 'Failed to fetch teams' });
-    }
-  });
 
-  app.get('/api/teams/:id', async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const team = await storage.getTeam(id);
-      
-      if (!team) {
-        return res.status(404).json({ error: 'Team not found' });
-      }
-      
-      res.json(team);
-    } catch (error) {
-      console.error('Error fetching team:', error);
-      res.status(500).json({ error: 'Failed to fetch team' });
-    }
-  });
 
   // Players - Admin only routes
   app.get("/api/players", requireAdmin, async (req, res) => {
