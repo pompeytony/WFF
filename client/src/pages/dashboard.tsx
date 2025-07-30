@@ -51,8 +51,8 @@ const Dashboard = () => {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
         <div className="lg:col-span-2">
           <PredictionForm
             gameweek={dashboardData.activeGameweek}
@@ -62,7 +62,7 @@ const Dashboard = () => {
           />
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <MiniLeagueTable data={dashboardData.leagueTable} />
           <UserStats playerId={user?.id} />
           <RecentResults results={dashboardData.recentResults} playerId={user?.id} />

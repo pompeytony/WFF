@@ -209,9 +209,9 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-football-navy">
+    <div className="bg-white rounded-xl shadow-lg p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
+        <h2 className="text-xl sm:text-2xl font-bold text-football-navy">
           <i className="fas fa-clipboard-list mr-2 text-football-green"></i>
           {gameweek.name} Predictions
         </h2>
@@ -263,9 +263,13 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
           };
 
           return (
-            <div key={fixture.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-football-green transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
+            <div key={fixture.id} className={`bg-gray-50 rounded-lg p-4 border-2 transition-colors ${
+              data.isJoker ? 'border-football-gold bg-football-gold bg-opacity-5' : 'border-gray-200 hover:border-football-green'
+            }`}>
+              {/* Mobile-first responsive layout */}
+              <div className="space-y-3">
+                {/* Header with joker and time */}
+                <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <input
                       type="radio"
@@ -279,14 +283,17 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
                       <i className={data.isJoker ? "fas fa-star" : "far fa-star"}></i>
                     </label>
                   </div>
-                  <div className="text-sm text-gray-500">{kickoffTime}</div>
+                  <div className="text-sm text-gray-500 font-medium">{kickoffTime}</div>
                 </div>
-                <div className="flex items-center space-x-4">
-                  <div className="flex items-center space-x-3">
-                    <div className="text-right">
-                      <div className="font-semibold text-football-navy">{fixture.homeTeam}</div>
+
+                {/* Teams and scores - mobile optimized */}
+                <div className="flex items-center justify-between">
+                  {/* Home team */}
+                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-football-navy truncate">
+                      {fixture.homeTeam}
                     </div>
-                    <div className={`w-8 h-8 ${getTeamColor(fixture.homeTeam)} rounded-full flex items-center justify-center`}>
+                    <div className={`w-10 h-10 ${getTeamColor(fixture.homeTeam)} rounded-full flex items-center justify-center flex-shrink-0`}>
                       <span className={`text-xs font-bold ${
                         fixture.homeTeam === 'Tottenham' ? 'text-gray-700' : 'text-white'
                       }`}>
@@ -294,39 +301,43 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
                       </span>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-2">
+
+                  {/* Score inputs - centered */}
+                  <div className="flex items-center space-x-2 mx-4">
                     <Input
                       type="number"
                       min="0"
                       max="20"
                       value={data.homeScore}
                       onChange={(e) => handleInputChange(fixture.id, 'homeScore', e.target.value)}
-                      className={`w-16 h-10 text-center font-mono transition-colors ${getInputStyling('homeScore')}`}
+                      className={`w-14 h-10 text-center font-mono text-lg transition-colors ${getInputStyling('homeScore')}`}
                       placeholder="0"
                       disabled={isDeadlinePassed}
                     />
-                    <span className="text-gray-400 font-bold">-</span>
+                    <span className="text-gray-400 font-bold text-lg">-</span>
                     <Input
                       type="number"
                       min="0"
                       max="20"
                       value={data.awayScore}
                       onChange={(e) => handleInputChange(fixture.id, 'awayScore', e.target.value)}
-                      className={`w-16 h-10 text-center font-mono transition-colors ${getInputStyling('awayScore')}`}
+                      className={`w-14 h-10 text-center font-mono text-lg transition-colors ${getInputStyling('awayScore')}`}
                       placeholder="0"
                       disabled={isDeadlinePassed}
                     />
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <div className={`w-8 h-8 ${getTeamColor(fixture.awayTeam)} rounded-full flex items-center justify-center`}>
+
+                  {/* Away team */}
+                  <div className="flex items-center space-x-2 flex-1 min-w-0 justify-end">
+                    <div className={`w-10 h-10 ${getTeamColor(fixture.awayTeam)} rounded-full flex items-center justify-center flex-shrink-0`}>
                       <span className={`text-xs font-bold ${
                         fixture.awayTeam === 'Tottenham' ? 'text-gray-700' : 'text-white'
                       }`}>
                         {getTeamAbbreviation(fixture.awayTeam)}
                       </span>
                     </div>
-                    <div className="text-left">
-                      <div className="font-semibold text-football-navy">{fixture.awayTeam}</div>
+                    <div className="text-sm font-semibold text-football-navy truncate text-right">
+                      {fixture.awayTeam}
                     </div>
                   </div>
                 </div>
@@ -335,12 +346,12 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
           );
         })}
 
-        <div className="flex items-center justify-between pt-6 border-t">
-          <div className="text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between pt-6 border-t space-y-3 sm:space-y-0">
+          <div className="text-sm text-gray-500 text-center sm:text-left">
             <i className="fas fa-info-circle mr-2"></i>
             5 points for correct score, 3 points for correct result
           </div>
-          <div className="flex space-x-3">
+          <div className="flex space-x-3 justify-center sm:justify-end">
             <Button
               type="button"
               variant="outline"
