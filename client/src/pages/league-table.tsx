@@ -7,13 +7,19 @@ const LeagueTable = () => {
     queryKey: ["/api/gameweeks"],
   });
 
-  // Get the most recent gameweek (completed or active)
-  const sortedGameweeks = gameweeks?.sort((a, b) => b.id - a.id) || [];
-  const latestGameweek = sortedGameweeks[0];
+  // Get the most recent COMPLETED gameweek (same logic as dashboard)
+  const completedGameweeks = gameweeks
+    ?.filter(gw => gw.isComplete)
+    ?.sort((a, b) => new Date(b.deadline || 0).getTime() - new Date(a.deadline || 0).getTime()) || [];
+  const latestCompletedGameweek = completedGameweeks[0];
 
   const { data: leagueTable, isLoading: leagueLoading } = useQuery({
-    queryKey: ["/api/weekly-scores", { gameweekId: latestGameweek?.id }],
-    enabled: !!latestGameweek,
+    queryKey: ["/api/weekly-scores", latestCompletedGameweek?.id],
+    queryFn: () => {
+      const url = `/api/weekly-scores?gameweekId=${latestCompletedGameweek?.id}`;
+      return fetch(url).then(res => res.json());
+    },
+    enabled: !!latestCompletedGameweek,
   });
 
   const isLoading = gameweeksLoading || leagueLoading;
@@ -36,17 +42,27 @@ const LeagueTable = () => {
           <CardTitle className="text-2xl font-bold text-football-navy">
             <i className="fas fa-trophy mr-2 text-football-gold"></i>
             League Table
-            {latestGameweek && (
+            {latestCompletedGameweek && (
               <span className="text-lg font-normal text-gray-600 ml-2">
-                - {latestGameweek.name}
+                - {latestCompletedGameweek.name}
               </span>
             )}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {!leagueTable || leagueTable.length === 0 ? (
+          {!latestCompletedGameweek ? (
             <div className="text-center py-12">
-              <p className="text-gray-500">No league data available</p>
+              <p className="text-gray-500 text-lg mb-2">No completed gameweeks yet</p>
+              <p className="text-sm text-gray-400">
+                League table will show once the first gameweek is completed.
+              </p>
+            </div>
+          ) : !leagueTable || leagueTable.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg mb-2">No league data available</p>
+              <p className="text-sm text-gray-400">
+                Weekly scores may need to be calculated by an admin for {latestCompletedGameweek.name}.
+              </p>
             </div>
           ) : (
             <div className="overflow-x-auto">
