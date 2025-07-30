@@ -417,6 +417,74 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Send reminders to players
+  app.post("/api/admin/send-reminders", requireAdmin, async (req, res) => {
+    try {
+      const { gameweekId, type, playerIds } = req.body;
+      
+      // Get gameweek and fixture details
+      const gameweek = (await storage.getGameweeks()).find(g => g.id === gameweekId);
+      if (!gameweek) {
+        return res.status(404).json({ error: "Gameweek not found" });
+      }
+
+      const fixtures = await storage.getFixturesByGameweek(gameweekId);
+      const players = await storage.getPlayers();
+      
+      // Get players who need reminders
+      const targetPlayers = playerIds ? 
+        players.filter(p => playerIds.includes(p.id)) : 
+        players;
+
+      // Create email content
+      const deadlineText = gameweek.deadline ? 
+        `Deadline: ${new Date(gameweek.deadline).toLocaleDateString('en-GB', { 
+          weekday: 'long', 
+          day: 'numeric', 
+          month: 'long', 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })}` : 
+        'No deadline set';
+
+      const fixturesList = fixtures.map(f => 
+        `${f.homeTeam} vs ${f.awayTeam} - ${new Date(f.kickoffTime).toLocaleDateString('en-GB', { 
+          weekday: 'short', 
+          day: 'numeric', 
+          month: 'short',
+          hour: '2-digit',
+          minute: '2-digit'
+        })}`
+      ).join('\n');
+
+      // Log reminder attempt (since we can't send actual emails without API key)
+      console.log('=== PREDICTION REMINDER ===');
+      console.log(`Gameweek: ${gameweek.name}`);
+      console.log(`${deadlineText}`);
+      console.log('Players to remind:', targetPlayers.map(p => `${p.name} (${p.email})`));
+      console.log('Fixtures:');
+      console.log(fixturesList);
+      console.log('=========================');
+
+      // For now, return success with a message about email setup
+      res.json({ 
+        success: true, 
+        message: "Reminder logged - email service needs configuration",
+        playersContacted: targetPlayers.length,
+        alternatives: [
+          "WhatsApp group message",
+          "Email manually using the player details shown in console",
+          "SMS using a service like Twilio",
+          "Configure email service (SendGrid, Mailgun, or Gmail SMTP)"
+        ]
+      });
+
+    } catch (error) {
+      console.error("Error sending reminders:", error);
+      res.status(500).json({ error: "Failed to send reminders" });
+    }
+  });
+
   // Get dashboard data
   app.get("/api/dashboard/:playerId", async (req, res) => {
     try {
