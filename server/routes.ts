@@ -308,8 +308,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Calculate points for all predictions on this fixture
       await calculatePredictionPoints(fixtureId);
       
+      // Get the gameweek for this fixture to check if it's now complete
+      const fixture = (await storage.getFixtures()).find(f => f.id === fixtureId);
+      if (fixture) {
+        const gameweekFixtures = await storage.getFixturesByGameweek(fixture.gameweekId);
+        const allFixturesComplete = gameweekFixtures.every(f => f.isComplete);
+        
+        if (allFixturesComplete) {
+          // Calculate weekly scores and mark gameweek as complete
+          await calculateGameweekScores(fixture.gameweekId);
+          await storage.updateGameweekStatus(fixture.gameweekId, undefined, true);
+          console.log(`Gameweek ${fixture.gameweekId} completed and scores calculated`);
+        }
+      }
+      
       res.json({ success: true });
     } catch (error) {
+      console.error("Error updating fixture result:", error);
       res.status(400).json({ error: "Invalid result data" });
     }
   });

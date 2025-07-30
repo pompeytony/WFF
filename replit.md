@@ -23,6 +23,11 @@ Preferred communication style: Simple, everyday language.
 - **PREDICTION FORM FIX:** Fixed locked prediction inputs when gameweek has no deadline
 - Corrected null deadline handling to prevent form lockout
 - Predictions now work properly for gameweeks without set deadlines
+- **PREDICTION SUBMISSION FIX:** Fixed "0" score submission issue and enhanced visual feedback
+- Added color-coded prediction inputs: orange for changed scores, green for successful submissions
+- **LEAGUE TABLE FIX:** Fixed league table not updating after gameweek completion
+- Implemented automatic weekly score calculation when all fixtures are complete
+- Gameweeks now automatically marked as complete with proper manager of week selection
 
 **January 20, 2025**
 - **MAJOR:** Implemented complete Replit authentication system for user login
