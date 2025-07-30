@@ -251,7 +251,8 @@ export class MemStorage implements IStorage {
       ...gameweek, 
       id, 
       isActive: false, 
-      isComplete: false 
+      isComplete: false,
+      deadline: gameweek.deadline ? new Date(gameweek.deadline) : null
     };
     this.gameweeks.set(id, newGameweek);
     return newGameweek;
@@ -373,6 +374,76 @@ export class MemStorage implements IStorage {
     } else {
       await this.createWeeklyScore({ playerId, gameweekId, totalPoints });
     }
+  }
+
+  // Admin operations
+  async getPredictionsOverview(gameweekId: number): Promise<any> {
+    // Get all players
+    const allPlayers = Array.from(this.players.values());
+    
+    // Get all fixtures for this gameweek
+    const gameweekFixtures = Array.from(this.fixtures.values())
+      .filter(f => f.gameweekId === gameweekId);
+    
+    // Get all predictions for this gameweek
+    const gameweekPredictions = Array.from(this.predictions.values())
+      .filter(p => {
+        const fixture = this.fixtures.get(p.fixtureId);
+        return fixture && fixture.gameweekId === gameweekId;
+      });
+
+    // Calculate player statistics
+    const playerStats = new Map();
+    allPlayers.forEach(player => {
+      playerStats.set(player.id, {
+        id: player.id,
+        name: player.name,
+        email: player.email,
+        predictionsCount: 0
+      });
+    });
+
+    gameweekPredictions.forEach(prediction => {
+      const stats = playerStats.get(prediction.playerId);
+      if (stats) {
+        stats.predictionsCount++;
+      }
+    });
+
+    const playersCompleted = Array.from(playerStats.values())
+      .filter(player => player.predictionsCount === gameweekFixtures.length);
+    
+    const playersPending = Array.from(playerStats.values())
+      .filter(player => player.predictionsCount < gameweekFixtures.length);
+
+    // Calculate fixture breakdown
+    const fixtureBreakdown = gameweekFixtures.map(fixture => {
+      const fixturePredictions = gameweekPredictions.filter(p => p.fixtureId === fixture.id);
+      const missingPlayers = allPlayers.filter(player => 
+        !fixturePredictions.some(p => p.playerId === player.id)
+      );
+
+      return {
+        id: fixture.id,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+        kickoffTime: fixture.kickoffTime,
+        predictionsCount: fixturePredictions.length,
+        missingPlayers: missingPlayers.map(p => ({ id: p.id, name: p.name }))
+      };
+    });
+
+    return {
+      summary: {
+        totalPlayers: allPlayers.length,
+        playersSubmitted: playersCompleted.length,
+        playersPending: playersPending.length,
+      },
+      totalFixtures: gameweekFixtures.length,
+      playersCompleted,
+      playersPending,
+      fixtureBreakdown
+    };
   }
 }
 

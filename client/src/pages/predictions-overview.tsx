@@ -24,7 +24,7 @@ const PredictionsOverview = () => {
   });
 
   // Use selected gameweek or default to active gameweek
-  const targetGameweekId = selectedGameweekId || activeGameweek?.id?.toString();
+  const targetGameweekId = selectedGameweekId || (activeGameweek as any)?.id?.toString();
 
   const { data: predictionsOverview, isLoading } = useQuery({
     queryKey: ["/api/admin/predictions-overview", targetGameweekId],
@@ -105,7 +105,7 @@ const PredictionsOverview = () => {
                 <SelectValue placeholder="Choose gameweek" />
               </SelectTrigger>
               <SelectContent>
-                {gameweeks?.map((gameweek: any) => (
+                {(gameweeks as any)?.map((gameweek: any) => (
                   <SelectItem key={gameweek.id} value={gameweek.id.toString()}>
                     {gameweek.name} ({gameweek.type})
                     {gameweek.isActive && <span className="ml-2 text-green-600">• Active</span>}
@@ -131,7 +131,7 @@ const PredictionsOverview = () => {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-royal-blue">
-                    {predictionsOverview.summary.totalPlayers}
+                    {(predictionsOverview as any).summary.totalPlayers}
                   </div>
                   <div className="text-sm text-gray-600">Total Players</div>
                 </div>
@@ -141,7 +141,7 @@ const PredictionsOverview = () => {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-football-green">
-                    {predictionsOverview.summary.playersSubmitted}
+                    {(predictionsOverview as any).summary.playersSubmitted}
                   </div>
                   <div className="text-sm text-gray-600">Submitted</div>
                 </div>
@@ -151,7 +151,7 @@ const PredictionsOverview = () => {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-red-accent">
-                    {predictionsOverview.summary.playersPending}
+                    {(predictionsOverview as any).summary.playersPending}
                   </div>
                   <div className="text-sm text-gray-600">Pending</div>
                 </div>
@@ -161,7 +161,7 @@ const PredictionsOverview = () => {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-football-gold">
-                    {Math.round((predictionsOverview.summary.playersSubmitted / predictionsOverview.summary.totalPlayers) * 100)}%
+                    {Math.round(((predictionsOverview as any).summary.playersSubmitted / (predictionsOverview as any).summary.totalPlayers) * 100)}%
                   </div>
                   <div className="text-sm text-gray-600">Completion Rate</div>
                 </div>
@@ -179,15 +179,15 @@ const PredictionsOverview = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {predictionsOverview.playersCompleted.length === 0 ? (
+                {(predictionsOverview as any).playersCompleted.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">No complete predictions yet</p>
                 ) : (
                   <div className="space-y-2">
-                    {predictionsOverview.playersCompleted.map((player: any) => (
+                    {(predictionsOverview as any).playersCompleted.map((player: any) => (
                       <div key={player.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                         <span className="font-medium">{player.name}</span>
                         <Badge variant="secondary" className="bg-football-green text-white">
-                          Complete ({player.predictionsCount}/{predictionsOverview.totalFixtures})
+                          Complete ({player.predictionsCount}/{(predictionsOverview as any).totalFixtures})
                         </Badge>
                       </div>
                     ))}
@@ -203,12 +203,12 @@ const PredictionsOverview = () => {
                     <i className="fas fa-exclamation-triangle mr-2 text-red-accent"></i>
                     Players Needing Reminders
                   </div>
-                  {predictionsOverview.playersPending.length > 0 && (
+                  {(predictionsOverview as any).playersPending.length > 0 && (
                     <Button
                       size="sm"
                       onClick={() => sendReminderMutation.mutate({ 
                         type: 'all',
-                        playerIds: predictionsOverview.playersPending.map((p: any) => p.id)
+                        playerIds: (predictionsOverview as any).playersPending.map((p: any) => p.id)
                       })}
                       disabled={sendReminderMutation.isPending}
                       className="bg-red-accent hover:bg-red-accent-dark"
@@ -220,11 +220,11 @@ const PredictionsOverview = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                {predictionsOverview.playersPending.length === 0 ? (
+                {(predictionsOverview as any).playersPending.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">All players have submitted!</p>
                 ) : (
                   <div className="space-y-2">
-                    {predictionsOverview.playersPending.map((player: any) => (
+                    {(predictionsOverview as any).playersPending.map((player: any) => (
                       <div key={player.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                         <div>
                           <span className="font-medium">{player.name}</span>
@@ -232,7 +232,7 @@ const PredictionsOverview = () => {
                         </div>
                         <div className="flex items-center space-x-2">
                           <Badge variant="destructive">
-                            {player.predictionsCount}/{predictionsOverview.totalFixtures}
+                            {player.predictionsCount}/{(predictionsOverview as any).totalFixtures}
                           </Badge>
                           <Button
                             size="sm"
@@ -276,7 +276,7 @@ const PredictionsOverview = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {predictionsOverview.fixtureBreakdown.map((fixture: any) => (
+                    {(predictionsOverview as any).fixtureBreakdown.map((fixture: any) => (
                       <tr key={fixture.id} className="border-b hover:bg-gray-50">
                         <td className="py-4 px-4">
                           <div className="font-semibold">{fixture.homeTeam} vs {fixture.awayTeam}</div>
@@ -293,8 +293,8 @@ const PredictionsOverview = () => {
                           </div>
                         </td>
                         <td className="py-4 px-4 text-center">
-                          <Badge variant={fixture.predictionsCount === predictionsOverview.summary.totalPlayers ? "secondary" : "destructive"}>
-                            {fixture.predictionsCount}/{predictionsOverview.summary.totalPlayers}
+                          <Badge variant={fixture.predictionsCount === (predictionsOverview as any).summary.totalPlayers ? "secondary" : "destructive"}>
+                            {fixture.predictionsCount}/{(predictionsOverview as any).summary.totalPlayers}
                           </Badge>
                         </td>
                         <td className="py-4 px-4 text-center">

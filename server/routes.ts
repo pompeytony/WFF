@@ -245,7 +245,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allGameweeks = await storage.getGameweeks();
       for (const gw of allGameweeks) {
         if (gw.id !== gameweekId && gw.isActive) {
-          await storage.updateGameweekStatus(gw.id, false, gw.isComplete);
+          await storage.updateGameweekStatus(gw.id, false, gw.isComplete || false);
         }
       }
       
@@ -397,7 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           player: playersMap.get(score.playerId),
         }))
         .filter(entry => entry.player)
-        .sort((a, b) => b.totalPoints - a.totalPoints);
+        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
       
       res.json(leagueTable);
     } else {
@@ -569,9 +569,9 @@ Good luck! ⚽
       const gameweeks = await storage.getGameweeks();
       const completedGameweeks = gameweeks
         .filter(gw => gw.isComplete)
-        .sort((a, b) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime());
+        .sort((a, b) => new Date(b.deadline || 0).getTime() - new Date(a.deadline || 0).getTime());
       
-      let leagueTable = [];
+      let leagueTable: any[] = [];
       if (completedGameweeks.length > 0) {
         const latestGameweek = completedGameweeks[0];
         const scores = await storage.getWeeklyScoresByGameweek(latestGameweek.id);
@@ -584,7 +584,7 @@ Good luck! ⚽
             player: playersMap.get(score.playerId),
           }))
           .filter(entry => entry.player)
-          .sort((a, b) => b.totalPoints - a.totalPoints);
+          .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
       }
       
       // Get recent results
@@ -653,14 +653,14 @@ async function calculateGameweekScores(gameweekId: number) {
   // Sum up points for each player
   for (const prediction of predictions) {
     const currentScore = playerScores.get(prediction.playerId) || 0;
-    playerScores.set(prediction.playerId, currentScore + prediction.points);
+    playerScores.set(prediction.playerId, currentScore + (prediction.points || 0));
   }
   
   // Find manager of the week (highest scorer)
   let highestScore = 0;
   let managerOfWeekId = 0;
   
-  for (const [playerId, score] of playerScores.entries()) {
+  for (const [playerId, score] of Array.from(playerScores.entries())) {
     if (score > highestScore) {
       highestScore = score;
       managerOfWeekId = playerId;
@@ -668,7 +668,7 @@ async function calculateGameweekScores(gameweekId: number) {
   }
   
   // Update weekly scores
-  for (const [playerId, score] of playerScores.entries()) {
+  for (const [playerId, score] of Array.from(playerScores.entries())) {
     const finalScore = playerId === managerOfWeekId ? score + 5 : score; // +5 bonus for manager of week
     const isManager = playerId === managerOfWeekId;
     await storage.updateWeeklyScore(playerId, gameweekId, finalScore, isManager);
