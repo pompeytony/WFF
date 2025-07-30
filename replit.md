@@ -10,6 +10,20 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**January 30, 2025**
+- **MOBILE OPTIMIZATION:** Implemented responsive dropdown navigation menu for mobile devices
+- Fixed off-screen menu issue with hamburger menu that drops down properly on mobile
+- Added league branding display on mobile navigation header
+- **LOGIN SYSTEM ENHANCEMENT:** Created two-stage login flow with dropdown player selection
+- Added public players endpoint for login dropdown without requiring authentication
+- Enhanced "I'm a New Player" button visibility with gold styling and user-plus icon
+- **GAMEWEEK MANAGEMENT FIX:** Fixed critical gameweek activation issue
+- Resolved dashboard not updating when new gameweeks are activated
+- Ensured only one gameweek can be active at a time with proper deactivation logic
+- **PREDICTION FORM FIX:** Fixed locked prediction inputs when gameweek has no deadline
+- Corrected null deadline handling to prevent form lockout
+- Predictions now work properly for gameweeks without set deadlines
+
 **January 20, 2025**
 - **MAJOR:** Implemented complete Replit authentication system for user login
 - Added session management with PostgreSQL store for user authentication
