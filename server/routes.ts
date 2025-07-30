@@ -648,12 +648,35 @@ async function calculatePredictionPoints(fixtureId: number) {
 // Helper function to calculate weekly scores and determine manager of the week
 async function calculateGameweekScores(gameweekId: number) {
   const predictions = await storage.getPredictionsByGameweek(gameweekId);
+  const allPlayers = await storage.getPlayers();
   const playerScores = new Map<number, number>();
   
-  // Sum up points for each player
+  // Sum up points for each player who submitted predictions
   for (const prediction of predictions) {
     const currentScore = playerScores.get(prediction.playerId) || 0;
     playerScores.set(prediction.playerId, currentScore + (prediction.points || 0));
+  }
+  
+  // Find the lowest score among players who submitted predictions
+  let lowestScore = Number.MAX_SAFE_INTEGER;
+  const playersWithPredictions = Array.from(playerScores.keys());
+  
+  if (playersWithPredictions.length > 0) {
+    for (const [playerId, score] of Array.from(playerScores.entries())) {
+      if (score < lowestScore) {
+        lowestScore = score;
+      }
+    }
+  } else {
+    // If no one submitted predictions, set lowest score to 0
+    lowestScore = 0;
+  }
+  
+  // Give players who didn't submit predictions the same score as the lowest scorer
+  for (const player of allPlayers) {
+    if (!playerScores.has(player.id)) {
+      playerScores.set(player.id, lowestScore);
+    }
   }
   
   // Find manager of the week (highest scorer)
@@ -667,7 +690,7 @@ async function calculateGameweekScores(gameweekId: number) {
     }
   }
   
-  // Update weekly scores
+  // Update weekly scores for all players
   for (const [playerId, score] of Array.from(playerScores.entries())) {
     const finalScore = playerId === managerOfWeekId ? score + 5 : score; // +5 bonus for manager of week
     const isManager = playerId === managerOfWeekId;

@@ -38,6 +38,13 @@ Preferred communication style: Simple, everyday language.
 - Updated League Table logic to match dashboard behavior - only showing data from completed gameweeks
 - Fixed variable reference errors and improved error handling for cases with no completed gameweeks
 - League Table now displays same data as dashboard mini table but with full table view
+- **MOBILE NAVIGATION FIX:** Fixed mobile dropdown menu positioning issue
+- Added proper CSS positioning to navigation container to prevent menu appearing at page bottom
+- Mobile hamburger menu now drops down correctly from navigation bar on all mobile devices
+- **SCORING SYSTEM ENHANCEMENT:** Implemented fair scoring for non-participating players
+- Players who forget to submit predictions now receive the same score as the lowest-scoring player who did submit
+- Prevents zero points when everyone else scored poorly, maintaining competitive balance
+- All players are now included in weekly score calculations automatically
 - **DATABASE SYNCHRONIZATION FIX:** Fixed critical bug in getPredictionsByGameweek function
 - Corrected broken WHERE clause that only returned first fixture prediction instead of all gameweek predictions
 - All saved predictions now display correctly across different browsers and sessions
