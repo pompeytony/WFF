@@ -35,6 +35,20 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
     return initial;
   });
 
+  // Track which fields have been changed and submitted
+  const [fieldStates, setFieldStates] = useState<Record<number, { homeChanged: boolean; awayChanged: boolean; submitted: boolean }>>(() => {
+    const initial: Record<number, { homeChanged: boolean; awayChanged: boolean; submitted: boolean }> = {};
+    fixtures.forEach(fixture => {
+      const existing = existingPredictions.get(fixture.id);
+      initial[fixture.id] = {
+        homeChanged: !!existing,
+        awayChanged: !!existing,
+        submitted: !!existing,
+      };
+    });
+    return initial;
+  });
+
   const submitPredictionsMutation = useMutation({
     mutationFn: async (predictions: any[]) => {
       return apiRequest("POST", "/api/predictions", predictions);
@@ -44,6 +58,23 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
         title: "Predictions submitted successfully!",
         description: "Your predictions have been saved.",
       });
+      
+      // Mark all submitted fixtures as submitted
+      setFieldStates(prev => {
+        const updated = { ...prev };
+        fixtures.forEach(fixture => {
+          const data = formData[fixture.id];
+          if (data.homeScore !== "" && data.awayScore !== "" && 
+              !isNaN(parseInt(data.homeScore)) && !isNaN(parseInt(data.awayScore))) {
+            updated[fixture.id] = {
+              ...updated[fixture.id],
+              submitted: true,
+            };
+          }
+        });
+        return updated;
+      });
+      
       queryClient.invalidateQueries({ queryKey: ["/api/dashboard"] });
     },
     onError: (error: any) => {
@@ -61,6 +92,16 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
       [fixtureId]: {
         ...prev[fixtureId],
         [field]: value,
+      },
+    }));
+    
+    // Mark field as changed
+    setFieldStates(prev => ({
+      ...prev,
+      [fixtureId]: {
+        ...prev[fixtureId],
+        [field === 'homeScore' ? 'homeChanged' : 'awayChanged']: true,
+        submitted: false, // Reset submitted state when changed
       },
     }));
   };
@@ -87,7 +128,9 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
     const predictionsToSubmit = fixtures
       .filter(fixture => {
         const data = formData[fixture.id];
-        return data.homeScore !== "" && data.awayScore !== "";
+        // Include predictions where both scores are provided (including 0)
+        return data.homeScore !== "" && data.awayScore !== "" && 
+               !isNaN(parseInt(data.homeScore)) && !isNaN(parseInt(data.awayScore));
       })
       .map(fixture => ({
         playerId,
@@ -197,12 +240,27 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
       <form onSubmit={handleSubmit} className="space-y-4">
         {fixtures.map((fixture, index) => {
           const data = formData[fixture.id] || { homeScore: "", awayScore: "", isJoker: false };
+          const states = fieldStates[fixture.id] || { homeChanged: false, awayChanged: false, submitted: false };
           const kickoffTime = new Date(fixture.kickoffTime).toLocaleDateString('en-US', {
             weekday: 'short',
             hour: '2-digit',
             minute: '2-digit',
             hour12: false,
           });
+
+          // Helper function to get input styling
+          const getInputStyling = (field: 'homeScore' | 'awayScore') => {
+            const isHome = field === 'homeScore';
+            const hasChanged = isHome ? states.homeChanged : states.awayChanged;
+            const value = isHome ? data.homeScore : data.awayScore;
+            
+            if (states.submitted && value !== "") {
+              return "border-green-500 bg-green-50 focus:border-green-600 focus:ring-green-200";
+            } else if (hasChanged && value !== "") {
+              return "border-orange-500 bg-orange-50 focus:border-orange-600 focus:ring-orange-200";
+            }
+            return "focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20";
+          };
 
           return (
             <div key={fixture.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-football-green transition-colors">
@@ -243,7 +301,7 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
                       max="20"
                       value={data.homeScore}
                       onChange={(e) => handleInputChange(fixture.id, 'homeScore', e.target.value)}
-                      className="w-16 h-10 text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20"
+                      className={`w-16 h-10 text-center font-mono transition-colors ${getInputStyling('homeScore')}`}
                       placeholder="0"
                       disabled={isDeadlinePassed}
                     />
@@ -254,7 +312,7 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
                       max="20"
                       value={data.awayScore}
                       onChange={(e) => handleInputChange(fixture.id, 'awayScore', e.target.value)}
-                      className="w-16 h-10 text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20"
+                      className={`w-16 h-10 text-center font-mono transition-colors ${getInputStyling('awayScore')}`}
                       placeholder="0"
                       disabled={isDeadlinePassed}
                     />
