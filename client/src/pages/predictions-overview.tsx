@@ -3,6 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { useState } from "react";
@@ -10,6 +12,8 @@ import { useState } from "react";
 const PredictionsOverview = () => {
   const { toast } = useToast();
   const [selectedGameweekId, setSelectedGameweekId] = useState<string>("");
+  const [reminderResponse, setReminderResponse] = useState<any>(null);
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
 
   const { data: gameweeks } = useQuery({
     queryKey: ["/api/gameweeks"],
@@ -40,16 +44,19 @@ const PredictionsOverview = () => {
         playerIds 
       });
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (response, variables) => {
+      setReminderResponse(response);
+      setShowReminderDialog(true);
+      
       if (variables.type === 'all') {
         toast({
-          title: "Reminders sent successfully!",
-          description: "All players with missing predictions have been notified.",
+          title: "Reminder details prepared!",
+          description: "Email template and player contacts ready for manual sending.",
         });
       } else {
         toast({
-          title: "Fixture reminder sent!",
-          description: "Players missing this prediction have been notified.",
+          title: "Fixture reminder prepared!",
+          description: "Contact details and template are ready.",
         });
       }
     },
@@ -307,6 +314,64 @@ const PredictionsOverview = () => {
           </Card>
         </>
       )}
+
+      {/* Reminder Dialog */}
+      <Dialog open={showReminderDialog} onOpenChange={setShowReminderDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-football-navy">
+              <i className="fas fa-envelope mr-2 text-football-gold"></i>
+              Reminder Details Ready
+            </DialogTitle>
+          </DialogHeader>
+          
+          {reminderResponse && (
+            <div className="space-y-6">
+              <div className="bg-football-gold/10 p-4 rounded-lg">
+                <h3 className="font-semibold text-football-navy mb-2">
+                  Ready to send to {reminderResponse.playersContacted} player(s)
+                </h3>
+                <p className="text-sm text-gray-600">{reminderResponse.message}</p>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-football-navy mb-2">Player Email Addresses:</h3>
+                <div className="bg-gray-50 p-3 rounded border">
+                  <code className="text-sm">{reminderResponse.playerEmails?.join("; ")}</code>
+                </div>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-football-navy mb-2">Ready-to-Send Email Template:</h3>
+                <Textarea
+                  value={reminderResponse.emailTemplate || ""}
+                  readOnly
+                  className="min-h-[300px] font-mono text-sm"
+                />
+                <Button
+                  className="mt-2"
+                  onClick={() => navigator.clipboard.writeText(reminderResponse.emailTemplate)}
+                >
+                  <i className="fas fa-copy mr-2"></i>
+                  Copy Email Template
+                </Button>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-football-navy mb-3">Sending Options:</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {reminderResponse.alternatives?.map((alt: any, index: number) => (
+                    <div key={index} className="border rounded-lg p-3 bg-white">
+                      <h4 className="font-medium text-football-navy">{alt.method}</h4>
+                      <p className="text-sm text-gray-600 mt-1">{alt.instruction}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </main>
   );
 };

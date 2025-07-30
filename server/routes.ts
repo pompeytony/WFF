@@ -466,16 +466,49 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log(fixturesList);
       console.log('=========================');
 
-      // For now, return success with a message about email setup
+      // Create formatted email template for manual sending
+      const emailTemplate = `
+Subject: Williams League - ${gameweek.name} Predictions Reminder
+
+Hi there!
+
+Don't forget to submit your predictions for ${gameweek.name}!
+
+${deadlineText}
+
+Fixtures:
+${fixturesList}
+
+Visit the app to make your predictions: ${req.protocol}://${req.get('host')}
+
+Good luck!
+Williams Friends & Family League
+      `.trim();
+
+      // For now, return success with formatted email template
       res.json({ 
         success: true, 
-        message: "Reminder logged - email service needs configuration",
+        message: `Reminder details prepared for ${targetPlayers.length} player(s)`,
         playersContacted: targetPlayers.length,
+        emailTemplate,
+        playerEmails: targetPlayers.map(p => p.email),
         alternatives: [
-          "WhatsApp group message",
-          "Email manually using the player details shown in console",
-          "SMS using a service like Twilio",
-          "Configure email service (SendGrid, Mailgun, or Gmail SMTP)"
+          {
+            method: "Gmail/Outlook",
+            instruction: "Copy the email template above and send to the player emails listed"
+          },
+          {
+            method: "WhatsApp Group",
+            instruction: "Share the fixture list and deadline in your group chat"
+          },
+          {
+            method: "Mailgun API", 
+            instruction: "Configure MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables"
+          },
+          {
+            method: "Resend API",
+            instruction: "Configure RESEND_API_KEY environment variable (more reliable than SendGrid)"
+          }
         ]
       });
 
