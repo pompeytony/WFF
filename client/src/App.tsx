@@ -1,6 +1,6 @@
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider, useQuery } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
@@ -13,9 +13,16 @@ import Players from "@/pages/players";
 import PredictionsOverview from "@/pages/predictions-overview";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
+import type { Gameweek } from "@shared/schema";
 
 function Router() {
   const { isAuthenticated, isLoading, user } = useAuth();
+  
+  // Fetch active gameweek for header display
+  const { data: activeGameweek } = useQuery<Gameweek>({
+    queryKey: ["/api/gameweeks/active"],
+    enabled: isAuthenticated,
+  });
 
   if (isLoading) {
     return (
@@ -44,7 +51,14 @@ function Router() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Williams Friends & Family League</h1>
-                <p className="text-gray-300 text-sm">Gameweek 15 • Premier League</p>
+                <p className="text-gray-300 text-sm">
+                  {activeGameweek ? `${activeGameweek.name} • ${
+                    activeGameweek.type === 'premier-league' ? 'Premier League' : 
+                    activeGameweek.type === 'international' ? 'International' :
+                    activeGameweek.type === 'mixed' ? 'Mixed' : 
+                    activeGameweek.type
+                  }` : 'Loading...'}
+                </p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
