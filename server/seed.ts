@@ -1,10 +1,14 @@
 import { db } from "./db";
 import { players, gameweeks, fixtures, weeklyScores } from "@shared/schema";
+import { seedTeams } from "./seed-teams";
 
 export async function seedDatabase() {
   console.log("🌱 Seeding database...");
 
   try {
+    // Seed teams first
+    await seedTeams();
+    
     // Test database connection first
     console.log("🔍 Verifying database tables...");
     

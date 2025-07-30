@@ -1,11 +1,12 @@
 import { 
-  users, players, gameweeks, fixtures, predictions, weeklyScores,
+  users, players, gameweeks, fixtures, predictions, weeklyScores, teams,
   type User, type UpsertUser,
   type Player, type InsertPlayer,
   type Gameweek, type InsertGameweek,
   type Fixture, type InsertFixture,
   type Prediction, type InsertPrediction,
-  type WeeklyScore, type InsertWeeklyScore
+  type WeeklyScore, type InsertWeeklyScore,
+  type Team, type InsertTeam, type InsertFixtureWithTeams
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
@@ -22,6 +23,12 @@ export interface IStorage {
   createPlayer(player: InsertPlayer): Promise<Player>;
   updatePlayer(id: number, updates: Partial<InsertPlayer>): Promise<void>;
   deletePlayer(id: number): Promise<void>;
+
+  // Teams
+  getTeams(): Promise<Team[]>;
+  getTeamsByLeague(league: string): Promise<Team[]>;
+  getTeamsByContinent(continent: string): Promise<Team[]>;
+  getTeam(id: number): Promise<Team | undefined>;
   
   // Gameweeks
   getGameweeks(): Promise<Gameweek[]>;
@@ -500,6 +507,24 @@ export class DatabaseStorage implements IStorage {
     await db.delete(weeklyScores).where(eq(weeklyScores.playerId, id));
     await db.delete(predictions).where(eq(predictions.playerId, id));
     await db.delete(players).where(eq(players.id, id));
+  }
+
+  // Teams
+  async getTeams(): Promise<Team[]> {
+    return await db.select().from(teams).orderBy(teams.league, teams.name);
+  }
+
+  async getTeamsByLeague(league: string): Promise<Team[]> {
+    return await db.select().from(teams).where(eq(teams.league, league)).orderBy(teams.name);
+  }
+
+  async getTeamsByContinent(continent: string): Promise<Team[]> {
+    return await db.select().from(teams).where(eq(teams.continent, continent)).orderBy(teams.name);
+  }
+
+  async getTeam(id: number): Promise<Team | undefined> {
+    const [team] = await db.select().from(teams).where(eq(teams.id, id));
+    return team || undefined;
   }
 
   // Gameweeks

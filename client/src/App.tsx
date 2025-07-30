@@ -13,6 +13,7 @@ import Players from "@/pages/players";
 import PredictionsOverview from "@/pages/predictions-overview";
 import Landing from "@/pages/landing";
 import NotFound from "@/pages/not-found";
+import Teams from "@/pages/teams";
 import type { Gameweek } from "@shared/schema";
 
 function Router() {
@@ -99,6 +100,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/league-table" component={LeagueTable} />
         <Route path="/results" component={Results} />
+        <Route path="/teams" component={Teams} />
         {user?.isAdmin && <Route path="/admin" component={Admin} />}
         {user?.isAdmin && <Route path="/players" component={Players} />}
         {user?.isAdmin && <Route path="/predictions-overview" component={PredictionsOverview} />}
