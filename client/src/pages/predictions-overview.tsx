@@ -37,12 +37,13 @@ const PredictionsOverview = () => {
 
   const sendReminderMutation = useMutation({
     mutationFn: async ({ type, fixtureId, playerIds }: { type: 'all' | 'fixture', fixtureId?: number, playerIds?: number[] }) => {
-      return apiRequest("POST", "/api/admin/send-reminders", { 
+      const response = await apiRequest("POST", "/api/admin/send-reminders", { 
         gameweekId: parseInt(targetGameweekId), 
         type, 
         fixtureId, 
         playerIds 
       });
+      return await response.json();
     },
     onSuccess: (response, variables) => {
       console.log("Reminder response received:", response);
@@ -335,10 +336,7 @@ const PredictionsOverview = () => {
                 <p className="text-sm text-gray-600">{reminderResponse.message || "Reminder details prepared"}</p>
               </div>
 
-              {/* Debug info - can be removed after testing */}
-              <div className="bg-gray-100 p-3 rounded text-xs">
-                <strong>Debug:</strong> {JSON.stringify(reminderResponse, null, 2)}
-              </div>
+
 
               <div>
                 <h3 className="font-semibold text-football-navy mb-2">Players to Contact:</h3>
