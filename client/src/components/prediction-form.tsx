@@ -109,9 +109,9 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
     submitPredictionsMutation.mutate(predictionsToSubmit);
   };
 
-  const isDeadlinePassed = new Date() > new Date(gameweek.deadline);
-  const timeToDeadline = Math.max(0, new Date(gameweek.deadline).getTime() - new Date().getTime());
-  const hoursLeft = Math.floor(timeToDeadline / (1000 * 60 * 60));
+  const isDeadlinePassed = gameweek.deadline ? new Date() > new Date(gameweek.deadline) : false;
+  const timeToDeadline = gameweek.deadline ? Math.max(0, new Date(gameweek.deadline).getTime() - new Date().getTime()) : Infinity;
+  const hoursLeft = gameweek.deadline ? Math.floor(timeToDeadline / (1000 * 60 * 60)) : 999;
 
   const getTeamAbbreviation = (teamName: string) => {
     const abbrevs: Record<string, string> = {
