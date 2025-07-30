@@ -240,6 +240,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch("/api/gameweeks/:id/activate", requireAdmin, async (req, res) => {
     try {
       const gameweekId = Number(req.params.id);
+      
+      // First deactivate all other gameweeks
+      const allGameweeks = await storage.getGameweeks();
+      for (const gw of allGameweeks) {
+        if (gw.id !== gameweekId && gw.isActive) {
+          await storage.updateGameweekStatus(gw.id, false, gw.isComplete);
+        }
+      }
+      
+      // Then activate the selected gameweek
       await storage.updateGameweekStatus(gameweekId, true, false);
       res.json({ success: true });
     } catch (error) {
