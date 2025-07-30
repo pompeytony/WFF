@@ -31,7 +31,7 @@ const Navigation = ({ user }: NavigationProps) => {
   };
 
   return (
-    <nav className="bg-white shadow-sm border-b">
+    <nav className="bg-white shadow-sm border-b relative">
       <div className="container mx-auto px-4">
         {/* Desktop Navigation */}
         <div className="hidden md:flex space-x-8">
@@ -52,7 +52,7 @@ const Navigation = ({ user }: NavigationProps) => {
         </div>
 
         {/* Mobile Navigation */}
-        <div className="md:hidden">
+        <div className="md:hidden relative">
           <div className="flex items-center justify-between py-4">
             <div className="text-lg font-semibold text-football-navy">
               Williams F&F League
