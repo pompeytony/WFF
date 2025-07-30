@@ -335,18 +335,42 @@ const PredictionsOverview = () => {
               </div>
 
               <div>
-                <h3 className="font-semibold text-football-navy mb-2">Player Email Addresses:</h3>
+                <h3 className="font-semibold text-football-navy mb-2">Players to Contact:</h3>
                 <div className="bg-gray-50 p-3 rounded border">
-                  <code className="text-sm">{reminderResponse.playerEmails?.join("; ")}</code>
+                  <div className="text-sm">
+                    <strong>Names:</strong> {reminderResponse.playerNames?.join(", ")}
+                  </div>
+                  <div className="text-sm mt-1">
+                    <strong>Emails:</strong> {reminderResponse.playerEmails?.join("; ")}
+                  </div>
                 </div>
               </div>
 
               <div>
-                <h3 className="font-semibold text-football-navy mb-2">Ready-to-Send Email Template:</h3>
+                <h3 className="font-semibold text-football-navy mb-2">
+                  <i className="fab fa-whatsapp mr-2 text-green-500"></i>
+                  WhatsApp Message (Recommended)
+                </h3>
+                <Textarea
+                  value={reminderResponse.whatsappMessage || ""}
+                  readOnly
+                  className="min-h-[200px] font-mono text-sm"
+                />
+                <Button
+                  className="mt-2 bg-green-500 hover:bg-green-600"
+                  onClick={() => navigator.clipboard.writeText(reminderResponse.whatsappMessage)}
+                >
+                  <i className="fab fa-whatsapp mr-2"></i>
+                  Copy WhatsApp Message
+                </Button>
+              </div>
+
+              <div>
+                <h3 className="font-semibold text-football-navy mb-2">Email Template (Alternative):</h3>
                 <Textarea
                   value={reminderResponse.emailTemplate || ""}
                   readOnly
-                  className="min-h-[300px] font-mono text-sm"
+                  className="min-h-[250px] font-mono text-sm"
                 />
                 <Button
                   className="mt-2"
@@ -361,9 +385,12 @@ const PredictionsOverview = () => {
                 <h3 className="font-semibold text-football-navy mb-3">Sending Options:</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {reminderResponse.alternatives?.map((alt: any, index: number) => (
-                    <div key={index} className="border rounded-lg p-3 bg-white">
-                      <h4 className="font-medium text-football-navy">{alt.method}</h4>
-                      <p className="text-sm text-gray-600 mt-1">{alt.instruction}</p>
+                    <div key={index} className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
+                      <div className="flex items-center mb-2">
+                        <i className={`${alt.icon} text-white p-2 rounded ${alt.color} mr-3`}></i>
+                        <h4 className="font-medium text-football-navy">{alt.method}</h4>
+                      </div>
+                      <p className="text-sm text-gray-600">{alt.instruction}</p>
                     </div>
                   ))}
                 </div>

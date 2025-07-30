@@ -485,29 +485,55 @@ Good luck!
 Williams Friends & Family League
       `.trim();
 
+      // Create WhatsApp-friendly message
+      const whatsappMessage = `
+🏈 Williams Friends & Family League
+
+${gameweek.name} Predictions Reminder!
+
+${deadlineText}
+
+Fixtures:
+${fixturesList}
+
+Don't forget to submit your predictions at: ${req.protocol}://${req.get('host')}
+
+Good luck! ⚽
+      `.trim();
+
       // For now, return success with formatted email template
       res.json({ 
         success: true, 
         message: `Reminder details prepared for ${targetPlayers.length} player(s)`,
         playersContacted: targetPlayers.length,
         emailTemplate,
+        whatsappMessage,
         playerEmails: targetPlayers.map(p => p.email),
+        playerNames: targetPlayers.map(p => p.name),
         alternatives: [
           {
+            method: "WhatsApp Group Message",
+            instruction: "Copy the WhatsApp message below and send to your family group chat",
+            icon: "fab fa-whatsapp",
+            color: "bg-green-500"
+          },
+          {
+            method: "Individual WhatsApp",
+            instruction: "Send WhatsApp messages directly to each player listed above",
+            icon: "fab fa-whatsapp",
+            color: "bg-green-500"
+          },
+          {
             method: "Gmail/Outlook",
-            instruction: "Copy the email template above and send to the player emails listed"
+            instruction: "Copy the email template and send to the player emails listed",
+            icon: "fas fa-envelope",
+            color: "bg-blue-500"
           },
           {
-            method: "WhatsApp Group",
-            instruction: "Share the fixture list and deadline in your group chat"
-          },
-          {
-            method: "Mailgun API", 
-            instruction: "Configure MAILGUN_API_KEY and MAILGUN_DOMAIN environment variables"
-          },
-          {
-            method: "Resend API",
-            instruction: "Configure RESEND_API_KEY environment variable (more reliable than SendGrid)"
+            method: "SMS Text Messages",
+            instruction: "Send text messages using the WhatsApp message format",
+            icon: "fas fa-sms",
+            color: "bg-purple-500"
           }
         ]
       });
