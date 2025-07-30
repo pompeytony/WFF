@@ -250,7 +250,7 @@ export default function Landing() {
           <h1 className="text-4xl sm:text-5xl font-bold text-white drop-shadow-2xl mb-4" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.8)'}}>
             ⚽ Williams Family & Friends Prediction League
           </h1>
-          <p className="text-xl text-white mb-8">
+          <p className="text-xl text-white mb-8 drop-shadow-lg" style={{textShadow: '1px 1px 3px rgba(0,0,0,0.7)'}}>
             Predict match results, compete with friends, and climb the leaderboard!
           </p>
           
