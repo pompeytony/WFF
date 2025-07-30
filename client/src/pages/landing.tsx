@@ -247,7 +247,7 @@ export default function Landing() {
     <div className="min-h-screen bg-gradient-to-br from-royal-blue-dark via-royal-blue to-royal-blue-light">
       <div className="container mx-auto px-4 py-16">
         <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold text-white mb-4">
+          <h1 className="text-4xl sm:text-5xl font-bold text-white drop-shadow-2xl mb-4" style={{textShadow: '2px 2px 4px rgba(0,0,0,0.8)'}}>
             ⚽ Williams Family & Friends Prediction League
           </h1>
           <p className="text-xl text-white mb-8">
