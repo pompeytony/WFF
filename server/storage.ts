@@ -8,7 +8,7 @@ import {
   type WeeklyScore, type InsertWeeklyScore
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -510,14 +510,7 @@ export class DatabaseStorage implements IStorage {
     
     if (fixtureIds.length === 0) return [];
     
-    return await db.select().from(predictions).where(
-      fixtureIds.length === 1 
-        ? eq(predictions.fixtureId, fixtureIds[0])
-        : fixtureIds.reduce((acc, id, index) => 
-            index === 0 ? eq(predictions.fixtureId, id) : acc, 
-            eq(predictions.fixtureId, fixtureIds[0])
-          )
-    );
+    return await db.select().from(predictions).where(inArray(predictions.fixtureId, fixtureIds));
   }
 
   async getPredictionByPlayerAndFixture(playerId: number, fixtureId: number): Promise<Prediction | undefined> {
