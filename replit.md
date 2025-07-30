@@ -33,6 +33,11 @@ Preferred communication style: Simple, everyday language.
 - **LEAGUE TABLE FIX:** Fixed league table not updating after gameweek completion
 - Implemented automatic weekly score calculation when all fixtures are complete
 - Gameweeks now automatically marked as complete with proper manager of week selection
+- **LEAGUE TABLE DATA LOADING FIX:** Fixed critical issue where League Table page showed "No data available"
+- Corrected API query parameter formatting that was sending [object Object] instead of proper gameweekId
+- Updated League Table logic to match dashboard behavior - only showing data from completed gameweeks
+- Fixed variable reference errors and improved error handling for cases with no completed gameweeks
+- League Table now displays same data as dashboard mini table but with full table view
 - **DATABASE SYNCHRONIZATION FIX:** Fixed critical bug in getPredictionsByGameweek function
 - Corrected broken WHERE clause that only returned first fixture prediction instead of all gameweek predictions
 - All saved predictions now display correctly across different browsers and sessions
