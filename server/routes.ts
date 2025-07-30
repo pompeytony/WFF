@@ -485,18 +485,22 @@ Good luck!
 Williams Friends & Family League
       `.trim();
 
-      // Create WhatsApp-friendly message
+      // Create WhatsApp-friendly message with specific player names
+      const playerNamesList = targetPlayers.map(p => `• ${p.name}`).join('\n');
       const whatsappMessage = `
 🏈 Williams Friends & Family League
 
-${gameweek.name} Predictions Reminder!
+${gameweek.name} Predictions Needed!
+
+Outstanding players:
+${playerNamesList}
 
 ${deadlineText}
 
-Fixtures:
+Fixtures this week:
 ${fixturesList}
 
-Don't forget to submit your predictions at: ${req.protocol}://${req.get('host')}
+Please submit your predictions at: ${req.protocol}://${req.get('host')}
 
 Good luck! ⚽
       `.trim();

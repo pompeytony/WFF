@@ -45,13 +45,14 @@ const PredictionsOverview = () => {
       });
     },
     onSuccess: (response, variables) => {
+      console.log("Reminder response received:", response);
       setReminderResponse(response);
       setShowReminderDialog(true);
       
       if (variables.type === 'all') {
         toast({
           title: "Reminder details prepared!",
-          description: "Email template and player contacts ready for manual sending.",
+          description: "WhatsApp message ready for family group chat.",
         });
       } else {
         toast({
@@ -329,9 +330,14 @@ const PredictionsOverview = () => {
             <div className="space-y-6">
               <div className="bg-football-gold/10 p-4 rounded-lg">
                 <h3 className="font-semibold text-football-navy mb-2">
-                  Ready to send to {reminderResponse.playersContacted} player(s)
+                  Ready to send to {reminderResponse.playersContacted || 0} player(s)
                 </h3>
-                <p className="text-sm text-gray-600">{reminderResponse.message}</p>
+                <p className="text-sm text-gray-600">{reminderResponse.message || "Reminder details prepared"}</p>
+              </div>
+
+              {/* Debug info - can be removed after testing */}
+              <div className="bg-gray-100 p-3 rounded text-xs">
+                <strong>Debug:</strong> {JSON.stringify(reminderResponse, null, 2)}
               </div>
 
               <div>
@@ -352,13 +358,14 @@ const PredictionsOverview = () => {
                   WhatsApp Message (Recommended)
                 </h3>
                 <Textarea
-                  value={reminderResponse.whatsappMessage || ""}
+                  value={reminderResponse.whatsappMessage || "No WhatsApp message available"}
                   readOnly
                   className="min-h-[200px] font-mono text-sm"
                 />
                 <Button
                   className="mt-2 bg-green-500 hover:bg-green-600"
-                  onClick={() => navigator.clipboard.writeText(reminderResponse.whatsappMessage)}
+                  onClick={() => navigator.clipboard.writeText(reminderResponse.whatsappMessage || "")}
+                  disabled={!reminderResponse.whatsappMessage}
                 >
                   <i className="fab fa-whatsapp mr-2"></i>
                   Copy WhatsApp Message
@@ -368,13 +375,14 @@ const PredictionsOverview = () => {
               <div>
                 <h3 className="font-semibold text-football-navy mb-2">Email Template (Alternative):</h3>
                 <Textarea
-                  value={reminderResponse.emailTemplate || ""}
+                  value={reminderResponse.emailTemplate || "No email template available"}
                   readOnly
                   className="min-h-[250px] font-mono text-sm"
                 />
                 <Button
                   className="mt-2"
-                  onClick={() => navigator.clipboard.writeText(reminderResponse.emailTemplate)}
+                  onClick={() => navigator.clipboard.writeText(reminderResponse.emailTemplate || "")}
+                  disabled={!reminderResponse.emailTemplate}
                 >
                   <i className="fas fa-copy mr-2"></i>
                   Copy Email Template
