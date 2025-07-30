@@ -10,7 +10,12 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-**January 30, 2025**
+**January 30, 2025** 
+- **MOBILE OPTIMIZATION:** Redesigned prediction form layout for mobile-first responsive design
+- Fixed iPhone display issues with proper vertical stacking and increased element sizes
+- Enhanced team badge visibility, score input sizing, and proper text truncation
+- Added golden highlighting for joker selection and improved mobile padding
+- **LANDING PAGE UPDATE:** Changed title to "Williams Family & Friends Prediction League"
 - **MOBILE OPTIMIZATION:** Implemented responsive dropdown navigation menu for mobile devices
 - Fixed off-screen menu issue with hamburger menu that drops down properly on mobile
 - Added league branding display on mobile navigation header
