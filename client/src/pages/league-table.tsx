@@ -1,21 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Gameweek } from "@shared/schema";
 
 const LeagueTable = () => {
-  const { data: gameweeks } = useQuery({
+  const { data: gameweeks, isLoading: gameweeksLoading } = useQuery<Gameweek[]>({
     queryKey: ["/api/gameweeks"],
   });
 
-  // Get the most recent completed gameweek
-  const completedGameweeks = gameweeks?.filter((gw: any) => gw.isComplete) || [];
-  const latestGameweek = completedGameweeks.sort(
-    (a: any, b: any) => new Date(b.deadline).getTime() - new Date(a.deadline).getTime()
-  )[0];
+  // Get the most recent gameweek (completed or active)
+  const sortedGameweeks = gameweeks?.sort((a, b) => b.id - a.id) || [];
+  const latestGameweek = sortedGameweeks[0];
 
-  const { data: leagueTable, isLoading } = useQuery({
+  const { data: leagueTable, isLoading: leagueLoading } = useQuery({
     queryKey: ["/api/weekly-scores", { gameweekId: latestGameweek?.id }],
     enabled: !!latestGameweek,
   });
+
+  const isLoading = gameweeksLoading || leagueLoading;
 
   if (isLoading) {
     return (
