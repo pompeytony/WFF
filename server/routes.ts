@@ -579,7 +579,17 @@ Good luck! ⚽
       const gameweeks = await storage.getGameweeks();
       const completedGameweeks = gameweeks
         .filter(gw => gw.isComplete)
-        .sort((a, b) => new Date(b.deadline || 0).getTime() - new Date(a.deadline || 0).getTime());
+        .sort((a, b) => {
+          // If both have deadlines, sort by deadline
+          if (a.deadline && b.deadline) {
+            return new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
+          }
+          // If only one has deadline, prioritize it
+          if (a.deadline && !b.deadline) return -1;
+          if (!a.deadline && b.deadline) return 1;
+          // If neither has deadline, sort by ID (most recent)
+          return b.id - a.id;
+        });
       
       let leagueTable: any[] = [];
       if (completedGameweeks.length > 0) {
