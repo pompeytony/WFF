@@ -7,18 +7,11 @@ const LeagueTable = () => {
     queryKey: ["/api/gameweeks"],
   });
 
-  // Get the most recent COMPLETED gameweek (use ID as fallback when deadline is null)
+  // Get the most recent COMPLETED gameweek (use ID as primary sort, deadline as secondary)
   const completedGameweeks = gameweeks
     ?.filter(gw => gw.isComplete)
     ?.sort((a, b) => {
-      // If both have deadlines, sort by deadline
-      if (a.deadline && b.deadline) {
-        return new Date(b.deadline).getTime() - new Date(a.deadline).getTime();
-      }
-      // If only one has deadline, prioritize it
-      if (a.deadline && !b.deadline) return -1;
-      if (!a.deadline && b.deadline) return 1;
-      // If neither has deadline, sort by ID (most recent)
+      // Always sort by ID first (most recent gameweek)
       return b.id - a.id;
     }) || [];
   const latestCompletedGameweek = completedGameweeks[0];

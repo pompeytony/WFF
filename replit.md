@@ -19,8 +19,9 @@ Preferred communication style: Simple, everyday language.
 - Added database unique constraint and API-level validation for gameweek names
 - System now prevents creating gameweeks with same name (case-insensitive)
 - **LEAGUE TABLE FIX:** Fixed league table not showing completed gameweeks without deadlines
-- Updated sorting logic to use gameweek ID as fallback when deadline is null
-- League table now properly displays results from "Test 2" and other gameweeks without deadlines
+- Simplified sorting logic to prioritize gameweek ID over deadline dates
+- League table now correctly displays results from "Test 2" (most recent completed gameweek)
+- Fixed both frontend and backend sorting to ensure consistent gameweek selection
 
 **January 30, 2025** 
 - **MOBILE OPTIMIZATION:** Redesigned prediction form layout for mobile-first responsive design
