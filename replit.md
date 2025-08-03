@@ -10,6 +10,15 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+**February 3, 2025**
+- **TEAMS DATABASE REMOVAL:** Successfully removed teams database functionality as requested
+- Cleaned up teams table, API endpoints, frontend components, and navigation links  
+- Simplified fixture structure to use text-based team names instead of foreign key references
+- **DUPLICATE PREVENTION:** Added validation to prevent duplicate gameweek names
+- Removed duplicate "Week 1" gameweek entry from database
+- Added database unique constraint and API-level validation for gameweek names
+- System now prevents creating gameweeks with same name (case-insensitive)
+
 **January 30, 2025** 
 - **MOBILE OPTIMIZATION:** Redesigned prediction form layout for mobile-first responsive design
 - Fixed iPhone display issues with proper vertical stacking and increased element sizes

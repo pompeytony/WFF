@@ -227,6 +227,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Received gameweek data:", req.body);
       const gameweekData = insertGameweekSchema.parse(req.body);
       console.log("Parsed gameweek data:", gameweekData);
+      
+      // Check for duplicate gameweek names
+      const existingGameweeks = await storage.getGameweeks();
+      const duplicate = existingGameweeks.find(gw => gw.name.toLowerCase() === gameweekData.name.toLowerCase());
+      if (duplicate) {
+        return res.status(400).json({ error: `A gameweek named "${gameweekData.name}" already exists` });
+      }
+      
       const gameweek = await storage.createGameweek(gameweekData);
       res.json(gameweek);
     } catch (error) {
