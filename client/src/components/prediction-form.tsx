@@ -4,6 +4,16 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import type { Gameweek, Fixture, Prediction } from "@shared/schema";
 
 interface PredictionFormProps {
@@ -34,6 +44,11 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
     });
     return initial;
   });
+
+  // State for validation dialog
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
+  const [validationMessage, setValidationMessage] = useState("");
+  const [pendingSubmission, setPendingSubmission] = useState<any[]>([]);
 
   // Track which fields have been changed and submitted
   const [fieldStates, setFieldStates] = useState<Record<number, { homeChanged: boolean; awayChanged: boolean; submitted: boolean }>>(() => {
@@ -149,7 +164,40 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
       return;
     }
 
+    // Validation checks
+    const missingPredictions = fixtures.length - predictionsToSubmit.length;
+    const hasJoker = predictionsToSubmit.some(p => p.isJoker);
+    
+    let warnings = [];
+    if (missingPredictions > 0) {
+      warnings.push(`${missingPredictions} prediction${missingPredictions > 1 ? 's' : ''} missing`);
+    }
+    if (!hasJoker && predictionsToSubmit.length > 0) {
+      warnings.push("No joker selected");
+    }
+
+    // If there are warnings, show confirmation dialog
+    if (warnings.length > 0) {
+      const warningText = warnings.join(" and ");
+      setValidationMessage(`You have ${warningText}. Are you sure you want to submit your predictions?`);
+      setPendingSubmission(predictionsToSubmit);
+      setShowValidationDialog(true);
+      return;
+    }
+
+    // No warnings, submit directly
     submitPredictionsMutation.mutate(predictionsToSubmit);
+  };
+
+  const handleConfirmSubmission = () => {
+    setShowValidationDialog(false);
+    submitPredictionsMutation.mutate(pendingSubmission);
+    setPendingSubmission([]);
+  };
+
+  const handleCancelSubmission = () => {
+    setShowValidationDialog(false);
+    setPendingSubmission([]);
   };
 
   const isDeadlinePassed = gameweek.deadline ? new Date() > new Date(gameweek.deadline) : false;
@@ -370,6 +418,33 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
           </div>
         </div>
       </form>
+
+      {/* Validation Dialog */}
+      <AlertDialog open={showValidationDialog} onOpenChange={setShowValidationDialog}>
+        <AlertDialogContent data-testid="prediction-validation-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center">
+              <i className="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+              Check Your Predictions
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {validationMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleCancelSubmission} data-testid="button-cancel-submission">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleConfirmSubmission} 
+              className="bg-football-green hover:bg-green-600"
+              data-testid="button-confirm-submission"
+            >
+              Submit Anyway
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

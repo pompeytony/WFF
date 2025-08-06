@@ -22,6 +22,10 @@ Preferred communication style: Simple, everyday language.
 - Simplified sorting logic to prioritize gameweek ID over deadline dates
 - League table now correctly displays results from "Test 2" (most recent completed gameweek)
 - Fixed both frontend and backend sorting to ensure consistent gameweek selection
+- **PREDICTION VALIDATION:** Added submission validation with confirmation dialog
+- Players now get warned when submitting with missing predictions or no joker selected
+- Confirmation pop-up allows players to review and fix issues before submitting
+- Enhanced user experience prevents accidental incomplete submissions
 
 **January 30, 2025** 
 - **MOBILE OPTIMIZATION:** Redesigned prediction form layout for mobile-first responsive design
