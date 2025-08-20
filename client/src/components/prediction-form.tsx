@@ -305,7 +305,7 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
         {fixtures.map((fixture, index) => {
           const data = formData[fixture.id] || { homeScore: "", awayScore: "", isJoker: false };
           const states = fieldStates[fixture.id] || { homeChanged: false, awayChanged: false, submitted: false };
-          const kickoffTime = formatUKTime(fixture.kickoffTime);
+          const kickoffTime = formatUKTime(fixture.kickoffTime.toString());
 
           // Helper function to get input styling
           const getInputStyling = (field: 'homeScore' | 'awayScore') => {

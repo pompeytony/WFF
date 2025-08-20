@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { Fixture, Gameweek } from "@shared/schema";
 
 // Helper function for UK timezone display
 const formatUKTime = (utcDateString: string): string => {
@@ -16,26 +17,24 @@ const formatUKTime = (utcDateString: string): string => {
 };
 
 const Results = () => {
-  const { data: fixtures, isLoading } = useQuery({
+  const { data: fixtures = [], isLoading } = useQuery<Fixture[]>({
     queryKey: ["/api/fixtures"],
   });
 
   // Filter completed fixtures and sort by most recent
   const completedFixtures = fixtures
-    ?.filter((f: any) => f.isComplete)
-    ?.sort((a: any, b: any) => new Date(b.kickoffTime).getTime() - new Date(a.kickoffTime).getTime()) || [];
+    .filter((f) => f.isComplete)
+    .sort((a, b) => new Date(b.kickoffTime).getTime() - new Date(a.kickoffTime).getTime());
 
-  const { data: gameweeks } = useQuery({
+  const { data: gameweeks = [] } = useQuery<Gameweek[]>({
     queryKey: ["/api/gameweeks"],
   });
 
   // Create a map of gameweeks for easy lookup
   const gameweekMap = new Map();
-  if (gameweeks) {
-    gameweeks.forEach((gw: any) => {
-      gameweekMap.set(gw.id, gw);
-    });
-  }
+  gameweeks.forEach((gw) => {
+    gameweekMap.set(gw.id, gw);
+  });
 
   if (isLoading) {
     return (

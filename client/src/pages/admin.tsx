@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import type { Fixture } from "@shared/schema";
+import type { Fixture, Gameweek } from "@shared/schema";
 
 // Helper functions for UK timezone handling
 const convertUTCToUKTime = (utcDateString: string): string => {
@@ -72,11 +72,11 @@ const Admin = () => {
     deadline: ""
   });
 
-  const { data: fixtures = [] } = useQuery({
+  const { data: fixtures = [] } = useQuery<Fixture[]>({
     queryKey: ["/api/fixtures"],
   });
 
-  const { data: gameweeks = [] } = useQuery({
+  const { data: gameweeks = [] } = useQuery<Gameweek[]>({
     queryKey: ["/api/gameweeks"],
   });
 
