@@ -438,6 +438,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live scoring - calculate current points for active gameweek
+  app.get("/api/live-scores/:gameweekId", async (req, res) => {
+    try {
+      const gameweekId = Number(req.params.gameweekId);
+      const liveScores = await calculateLiveGameweekScores(gameweekId);
+      
+      // Get player details and sort by total points
+      const players = await storage.getPlayers();
+      const playersMap = new Map(players.map(p => [p.id, p]));
+      
+      const leagueTable = liveScores
+        .map(score => ({
+          ...score,
+          player: playersMap.get(score.playerId),
+        }))
+        .filter(entry => entry.player)
+        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+      
+      res.json(leagueTable);
+    } catch (error) {
+      console.error("Error calculating live scores:", error);
+      res.status(500).json({ error: "Failed to calculate live scores" });
+    }
+  });
+
+  // Cumulative scoring - sum all completed gameweeks
+  app.get("/api/cumulative-scores", async (req, res) => {
+    try {
+      const cumulativeScores = await calculateCumulativeScores();
+      
+      // Get player details and sort by total points
+      const players = await storage.getPlayers();
+      const playersMap = new Map(players.map(p => [p.id, p]));
+      
+      const leagueTable = cumulativeScores
+        .map(score => ({
+          ...score,
+          player: playersMap.get(score.playerId),
+        }))
+        .filter(entry => entry.player)
+        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+      
+      res.json(leagueTable);
+    } catch (error) {
+      console.error("Error calculating cumulative scores:", error);
+      res.status(500).json({ error: "Failed to calculate cumulative scores" });
+    }
+  });
+
   // Calculate scores for a gameweek
   app.post("/api/calculate-scores/:gameweekId", async (req, res) => {
     try {
@@ -678,6 +727,111 @@ async function calculatePredictionPoints(fixtureId: number) {
     
     await storage.updatePredictionPoints(prediction.id, points);
   }
+}
+
+// Helper function to calculate live scores for an active gameweek
+async function calculateLiveGameweekScores(gameweekId: number) {
+  const predictions = await storage.getPredictionsByGameweek(gameweekId);
+  const fixtures = await storage.getFixturesByGameweek(gameweekId);
+  const allPlayers = await storage.getPlayers();
+  const playerScores = new Map<number, number>();
+  
+  // Calculate current points based on completed fixtures
+  for (const prediction of predictions) {
+    const fixture = fixtures.find(f => f.id === prediction.fixtureId);
+    if (!fixture || !fixture.isComplete) continue; // Only count completed fixtures
+    
+    let points = 0;
+    
+    // Check for correct score (5 points)
+    if (prediction.homeScore === fixture.homeScore && prediction.awayScore === fixture.awayScore) {
+      points = 5;
+    }
+    // Check for correct result (3 points)
+    else {
+      const predictedResult = prediction.homeScore > prediction.awayScore ? 'home' : 
+                             prediction.homeScore < prediction.awayScore ? 'away' : 'draw';
+      const actualResult = fixture.homeScore! > fixture.awayScore! ? 'home' :
+                          fixture.homeScore! < fixture.awayScore! ? 'away' : 'draw';
+      
+      if (predictedResult === actualResult) {
+        points = 3;
+      }
+    }
+    
+    // Double points if joker was played
+    if (prediction.isJoker) {
+      points *= 2;
+    }
+    
+    const currentScore = playerScores.get(prediction.playerId) || 0;
+    playerScores.set(prediction.playerId, currentScore + points);
+  }
+  
+  // Include all players (even those with no predictions or 0 points)
+  for (const player of allPlayers) {
+    if (!playerScores.has(player.id)) {
+      playerScores.set(player.id, 0);
+    }
+  }
+  
+  // Check if all fixtures are complete
+  const allFixturesComplete = fixtures.every(f => f.isComplete);
+  let managerOfWeekId = 0;
+  
+  if (allFixturesComplete) {
+    // Add manager of the week bonus only when all fixtures are complete
+    let highestScore = 0;
+    
+    for (const [playerId, score] of Array.from(playerScores.entries())) {
+      if (score > highestScore) {
+        highestScore = score;
+        managerOfWeekId = playerId;
+      }
+    }
+  }
+  
+  // Return formatted scores
+  return Array.from(playerScores.entries()).map(([playerId, score]) => ({
+    playerId,
+    gameweekId,
+    totalPoints: managerOfWeekId === playerId ? score + 5 : score,
+    isManagerOfWeek: managerOfWeekId === playerId,
+    isLive: true, // Mark as live scoring
+  }));
+}
+
+// Helper function to calculate cumulative scores across all completed gameweeks
+async function calculateCumulativeScores() {
+  const allWeeklyScores = await storage.getWeeklyScores();
+  const gameweeks = await storage.getGameweeks();
+  const completedGameweeks = gameweeks.filter(gw => gw.isComplete);
+  const allPlayers = await storage.getPlayers();
+  
+  const playerCumulativeScores = new Map<number, number>();
+  
+  // Sum up scores from all completed gameweeks
+  for (const score of allWeeklyScores) {
+    const isFromCompletedGameweek = completedGameweeks.some(gw => gw.id === score.gameweekId);
+    if (!isFromCompletedGameweek) continue;
+    
+    const currentCumulative = playerCumulativeScores.get(score.playerId) || 0;
+    playerCumulativeScores.set(score.playerId, currentCumulative + (score.totalPoints || 0));
+  }
+  
+  // Include all players (even those with 0 cumulative points)
+  for (const player of allPlayers) {
+    if (!playerCumulativeScores.has(player.id)) {
+      playerCumulativeScores.set(player.id, 0);
+    }
+  }
+  
+  // Return formatted scores
+  return Array.from(playerCumulativeScores.entries()).map(([playerId, totalPoints]) => ({
+    playerId,
+    totalPoints,
+    isCumulative: true,
+  }));
 }
 
 // Helper function to calculate weekly scores and determine manager of the week
