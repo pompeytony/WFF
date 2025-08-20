@@ -62,6 +62,7 @@ const Admin = () => {
   // Edit fixture form state
   const [isEditFixtureOpen, setIsEditFixtureOpen] = useState(false);
   const [editingFixture, setEditingFixture] = useState<any>(null);
+  const [showFixturesList, setShowFixturesList] = useState(false);
   
   // Add gameweek form state
   const [isAddGameweekOpen, setIsAddGameweekOpen] = useState(false);
@@ -71,11 +72,11 @@ const Admin = () => {
     deadline: ""
   });
 
-  const { data: fixtures } = useQuery({
+  const { data: fixtures = [] } = useQuery({
     queryKey: ["/api/fixtures"],
   });
 
-  const { data: gameweeks } = useQuery({
+  const { data: gameweeks = [] } = useQuery({
     queryKey: ["/api/gameweeks"],
   });
 
@@ -461,18 +462,31 @@ const Admin = () => {
               </DialogContent>
             </Dialog>
 
-            <Button variant="outline" className="w-full">
-              <i className="fas fa-edit mr-2"></i>
-              Edit Existing Fixtures
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => setShowFixturesList(!showFixturesList)}
+              data-testid="button-toggle-fixtures-list"
+            >
+              <i className={`fas ${showFixturesList ? 'fa-chevron-up' : 'fa-chevron-down'} mr-2`}></i>
+              {showFixturesList ? 'Hide' : 'Show'} Existing Fixtures
             </Button>
 
             {/* Fixtures List for Editing */}
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {fixtures?.map((fixture: any) => (
-                <div key={fixture.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+            {showFixturesList && (
+              <div className="space-y-2 max-h-60 overflow-y-auto border rounded p-2 bg-gray-50">
+              {fixtures
+                .sort((a: any, b: any) => new Date(b.kickoffTime).getTime() - new Date(a.kickoffTime).getTime())
+                .map((fixture: any) => (
+                <div key={fixture.id} className="flex items-center justify-between p-2 bg-white rounded border">
                   <div className="text-sm">
                     <div className="font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</div>
-                    <div className="text-gray-500">{new Date(fixture.kickoffTime).toLocaleDateString()} {new Date(fixture.kickoffTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
+                    <div className="text-gray-500">
+                      {new Date(fixture.kickoffTime).toLocaleDateString()} {new Date(fixture.kickoffTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                    <div className="text-xs text-blue-600">
+                      {gameweeks.find((gw: any) => gw.id === fixture.gameweekId)?.name || `Gameweek ${fixture.gameweekId}`}
+                    </div>
                   </div>
                   <Button
                     size="sm"
@@ -485,7 +499,8 @@ const Admin = () => {
                   </Button>
                 </div>
               ))}
-            </div>
+              </div>
+            )}
 
             {/* Edit Fixture Dialog */}
             <Dialog open={isEditFixtureOpen} onOpenChange={setIsEditFixtureOpen}>

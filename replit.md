@@ -39,6 +39,10 @@ Preferred communication style: Simple, everyday language.
 - **TIMEZONE FIX:** Fixed timezone display issue where UK time input showed 1 hour later
 - Added proper UK timezone handling for GMT/BST with clear labeling
 - Admin fixture times now display and save correctly in UK timezone
+- **ADMIN FIXTURES LIST FIX:** Fixed "Edit Existing Fixtures" button functionality
+- Added toggle functionality to show/hide fixtures list with proper sorting
+- Fixtures now display sorted by date (newest first) with gameweek information
+- Fixed API query typing issues that prevented fixture list from displaying
 
 **January 30, 2025** 
 - **MOBILE OPTIMIZATION:** Redesigned prediction form layout for mobile-first responsive design
