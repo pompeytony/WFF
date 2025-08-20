@@ -16,6 +16,7 @@ import { z } from "zod";
 const playerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Please enter a valid email address"),
+  phoneNumber: z.string().optional(),
 });
 
 type PlayerFormData = z.infer<typeof playerSchema>;
@@ -35,6 +36,7 @@ export default function Players() {
     defaultValues: {
       name: "",
       email: "",
+      phoneNumber: "",
     },
   });
 
@@ -43,6 +45,7 @@ export default function Players() {
     defaultValues: {
       name: "",
       email: "",
+      phoneNumber: "",
       isAdmin: false,
     },
   });
@@ -117,7 +120,7 @@ export default function Players() {
     if (editingPlayer) {
       updatePlayerMutation.mutate({ 
         playerId: editingPlayer.id, 
-        data: { name: data.name, email: data.email, isAdmin: data.isAdmin }
+        data: { name: data.name, email: data.email, phoneNumber: data.phoneNumber, isAdmin: data.isAdmin }
       });
     }
   };
@@ -127,6 +130,7 @@ export default function Players() {
     editForm.reset({
       name: player.name,
       email: player.email,
+      phoneNumber: player.phoneNumber || "",
       isAdmin: player.isAdmin || false,
     });
     setIsEditDialogOpen(true);
@@ -195,6 +199,23 @@ export default function Players() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="tel" 
+                          placeholder="Enter UK mobile number (e.g. 07123456789)"
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="flex justify-end space-x-2">
                   <Button
                     type="button"
@@ -248,6 +269,23 @@ export default function Players() {
                       <FormLabel>Email Address</FormLabel>
                       <FormControl>
                         <Input type="email" placeholder="Enter player's email" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={editForm.control}
+                  name="phoneNumber"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number (Optional)</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="tel" 
+                          placeholder="Enter UK mobile number (e.g. 07123456789)"
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -343,6 +381,12 @@ export default function Players() {
                           )}
                         </div>
                         <p className="text-gray-600 text-sm">{player.email}</p>
+                        {player.phoneNumber && (
+                          <p className="text-gray-500 text-sm">
+                            <i className="fas fa-phone mr-1"></i>
+                            {player.phoneNumber}
+                          </p>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center space-x-2">

@@ -566,8 +566,17 @@ Good luck!
 Williams Friends & Family League
       `.trim();
 
-      // Create WhatsApp-friendly message with specific player names
-      const playerNamesList = targetPlayers.map(p => `• ${p.name}`).join('\n');
+      // Create WhatsApp-friendly message with phone number tagging when available
+      const playerNamesList = targetPlayers.map(p => {
+        if (p.phoneNumber) {
+          // Format phone number for WhatsApp tagging (remove spaces and non-digits, add country code if missing)
+          const cleanNumber = p.phoneNumber.replace(/\D/g, '');
+          const formattedNumber = cleanNumber.startsWith('44') ? cleanNumber : `44${cleanNumber}`;
+          return `• @${formattedNumber} (${p.name})`;
+        }
+        return `• ${p.name}`;
+      }).join('\n');
+      
       const whatsappMessage = `
 🏈 Williams Friends & Family League
 

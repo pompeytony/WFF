@@ -31,6 +31,7 @@ export const players = pgTable("players", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   email: text("email").notNull().unique(),
+  phoneNumber: text("phone_number"),
   isAdmin: boolean("is_admin").default(false),
 });
 
@@ -119,6 +120,7 @@ export const upsertUserSchema = createInsertSchema(users);
 export const insertPlayerSchema = createInsertSchema(players).pick({
   name: true,
   email: true,
+  phoneNumber: true,
 });
 
 export const insertGameweekSchema = createInsertSchema(gameweeks).pick({
