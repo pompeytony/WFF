@@ -278,12 +278,29 @@ const Admin = () => {
     e.preventDefault();
     if (!editingFixture) return;
 
+    // Ensure kickoffTime is properly formatted
+    let kickoffTimeISO;
+    if (typeof editingFixture.kickoffTime === 'string') {
+      // If it's a datetime-local string, convert it to UTC
+      if (editingFixture.kickoffTime.includes('T')) {
+        kickoffTimeISO = convertUKTimeToUTC(editingFixture.kickoffTime);
+      } else {
+        // If it's already an ISO string, use it directly
+        kickoffTimeISO = editingFixture.kickoffTime;
+      }
+    } else {
+      // If it's a Date object, convert to ISO
+      kickoffTimeISO = new Date(editingFixture.kickoffTime).toISOString();
+    }
+
     const updateData = {
       homeTeam: editingFixture.homeTeam,
       awayTeam: editingFixture.awayTeam,
-      kickoffTime: convertUKTimeToUTC(editingFixture.kickoffTime),
+      kickoffTime: kickoffTimeISO,
       gameweekId: editingFixture.gameweekId,
     };
+
+    console.log('Updating fixture with data:', updateData);
 
     editFixtureMutation.mutate({
       fixtureId: editingFixture.id,

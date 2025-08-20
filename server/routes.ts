@@ -313,6 +313,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fixtureId = Number(req.params.id);
       const updateData = req.body;
       
+      // Ensure kickoffTime is properly converted to Date object
+      if (updateData.kickoffTime) {
+        updateData.kickoffTime = new Date(updateData.kickoffTime);
+      }
+      
+      console.log("Updating fixture with processed data:", updateData);
+      
       // Update fixture details (teams, kickoff time, etc.)
       await storage.updateFixture(fixtureId, updateData);
       
