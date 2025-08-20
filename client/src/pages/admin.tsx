@@ -11,6 +11,38 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Fixture } from "@shared/schema";
 
+// Helper functions for UK timezone handling
+const convertUTCToUKTime = (utcDateString: string): string => {
+  const date = new Date(utcDateString);
+  // Convert to UK time by creating a new date with UK timezone formatting
+  const ukTime = new Date(date.toLocaleString("en-US", {timeZone: "Europe/London"}));
+  
+  // Format for datetime-local input (YYYY-MM-DDTHH:mm)
+  const year = ukTime.getFullYear();
+  const month = String(ukTime.getMonth() + 1).padStart(2, '0');
+  const day = String(ukTime.getDate()).padStart(2, '0');
+  const hours = String(ukTime.getHours()).padStart(2, '0');
+  const minutes = String(ukTime.getMinutes()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+const convertUKTimeToUTC = (ukTimeString: string): string => {
+  // Create a date assuming the input is in UK timezone
+  const inputDate = new Date(ukTimeString);
+  
+  // Get the current timezone offset for UK (handles GMT/BST automatically)
+  const tempDate = new Date();
+  const ukOffset = new Date(tempDate.toLocaleString("en-US", {timeZone: "Europe/London"})).getTimezoneOffset();
+  const localOffset = tempDate.getTimezoneOffset();
+  
+  // Calculate the difference and adjust to get UTC
+  const offsetDiff = (localOffset - ukOffset) * 60000; // Convert to milliseconds
+  const utcTime = new Date(inputDate.getTime() + offsetDiff);
+  
+  return utcTime.toISOString();
+};
+
 const Admin = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -211,7 +243,7 @@ const Admin = () => {
     addFixtureMutation.mutate({
       homeTeam: newFixture.homeTeam,
       awayTeam: newFixture.awayTeam,
-      kickoffTime: new Date(newFixture.kickoffTime).toISOString(),
+      kickoffTime: convertUKTimeToUTC(newFixture.kickoffTime),
       gameweekId: parseInt(newFixture.gameweekId),
     });
   };
@@ -248,7 +280,7 @@ const Admin = () => {
     const updateData = {
       homeTeam: editingFixture.homeTeam,
       awayTeam: editingFixture.awayTeam,
-      kickoffTime: new Date(editingFixture.kickoffTime).toISOString(),
+      kickoffTime: convertUKTimeToUTC(editingFixture.kickoffTime),
       gameweekId: editingFixture.gameweekId,
     };
 
@@ -409,7 +441,7 @@ const Admin = () => {
                   </div>
 
                   <div>
-                    <Label htmlFor="kickoff-time">Kickoff Time</Label>
+                    <Label htmlFor="kickoff-time">Kickoff Time (UK Time)</Label>
                     <Input
                       id="kickoff-time"
                       type="datetime-local"
@@ -440,7 +472,7 @@ const Admin = () => {
                 <div key={fixture.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                   <div className="text-sm">
                     <div className="font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</div>
-                    <div className="text-gray-500">{new Date(fixture.kickoffTime).toLocaleDateString()}</div>
+                    <div className="text-gray-500">{new Date(fixture.kickoffTime).toLocaleDateString()} {new Date(fixture.kickoffTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}</div>
                   </div>
                   <Button
                     size="sm"
@@ -488,11 +520,11 @@ const Admin = () => {
                     </div>
 
                     <div>
-                      <Label htmlFor="edit-kickoff-time">Kickoff Time</Label>
+                      <Label htmlFor="edit-kickoff-time">Kickoff Time (UK Time)</Label>
                       <Input
                         id="edit-kickoff-time"
                         type="datetime-local"
-                        value={editingFixture.kickoffTime ? new Date(editingFixture.kickoffTime).toISOString().slice(0, 16) : ""}
+                        value={editingFixture.kickoffTime ? convertUTCToUKTime(editingFixture.kickoffTime) : ""}
                         onChange={(e) => setEditingFixture({...editingFixture, kickoffTime: e.target.value})}
                         data-testid="input-edit-kickoff-time"
                       />

@@ -36,6 +36,9 @@ Preferred communication style: Simple, everyday language.
 - **ADMIN EDIT FIXTURES:** Added facility for admins to edit existing fixtures
 - Edit functionality allows modifying teams, kickoff times, and gameweek assignments
 - Prevents admin errors by providing correction capability after fixture creation
+- **TIMEZONE FIX:** Fixed timezone display issue where UK time input showed 1 hour later
+- Added proper UK timezone handling for GMT/BST with clear labeling
+- Admin fixture times now display and save correctly in UK timezone
 
 **January 30, 2025** 
 - **MOBILE OPTIMIZATION:** Redesigned prediction form layout for mobile-first responsive design
