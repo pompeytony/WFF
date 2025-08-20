@@ -37,8 +37,11 @@ Preferred communication style: Simple, everyday language.
 - Edit functionality allows modifying teams, kickoff times, and gameweek assignments
 - Prevents admin errors by providing correction capability after fixture creation
 - **TIMEZONE FIX:** Fixed timezone display issue where UK time input showed 1 hour later
-- Added proper UK timezone handling for GMT/BST with clear labeling
+- Added proper UK timezone handling for GMT/BST with clear labeling  
 - Admin fixture times now display and save correctly in UK timezone
+- **DASHBOARD TIMEZONE FIX:** Fixed fixture time display on dashboard prediction form
+- Updated Results page to show fixture times in UK timezone correctly
+- All fixture times now consistently display in UK time across the application
 - **ADMIN FIXTURES LIST FIX:** Fixed "Edit Existing Fixtures" button functionality
 - Added toggle functionality to show/hide fixtures list with proper sorting
 - Fixtures now display sorted by date (newest first) with gameweek information

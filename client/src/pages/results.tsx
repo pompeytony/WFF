@@ -1,6 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
+// Helper function for UK timezone display
+const formatUKTime = (utcDateString: string): string => {
+  const date = new Date(utcDateString);
+  return date.toLocaleDateString('en-US', {
+    timeZone: 'Europe/London',
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+
 const Results = () => {
   const { data: fixtures, isLoading } = useQuery({
     queryKey: ["/api/fixtures"],
@@ -52,14 +66,7 @@ const Results = () => {
             <div className="space-y-4">
               {completedFixtures.map((fixture: any) => {
                 const gameweek = gameweekMap.get(fixture.gameweekId);
-                const kickoffDate = new Date(fixture.kickoffTime).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  year: 'numeric',
-                  month: 'short',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                });
+                const kickoffDate = formatUKTime(fixture.kickoffTime);
 
                 return (
                   <div key={fixture.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">

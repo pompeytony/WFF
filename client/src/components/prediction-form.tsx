@@ -16,6 +16,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import type { Gameweek, Fixture, Prediction } from "@shared/schema";
 
+// Helper function for UK timezone display
+const formatUKTime = (utcDateString: string): string => {
+  const date = new Date(utcDateString);
+  return date.toLocaleDateString('en-US', {
+    timeZone: 'Europe/London',
+    weekday: 'short',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
 interface PredictionFormProps {
   gameweek: Gameweek;
   fixtures: Fixture[];
@@ -289,12 +301,7 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
         {fixtures.map((fixture, index) => {
           const data = formData[fixture.id] || { homeScore: "", awayScore: "", isJoker: false };
           const states = fieldStates[fixture.id] || { homeChanged: false, awayChanged: false, submitted: false };
-          const kickoffTime = new Date(fixture.kickoffTime).toLocaleDateString('en-US', {
-            weekday: 'short',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false,
-          });
+          const kickoffTime = formatUKTime(fixture.kickoffTime);
 
           // Helper function to get input styling
           const getInputStyling = (field: 'homeScore' | 'awayScore') => {
