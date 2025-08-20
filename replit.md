@@ -33,6 +33,9 @@ Preferred communication style: Simple, everyday language.
 - Players now get warned when submitting with missing predictions or no joker selected
 - Confirmation pop-up allows players to review and fix issues before submitting
 - Enhanced user experience prevents accidental incomplete submissions
+- **ADMIN EDIT FIXTURES:** Added facility for admins to edit existing fixtures
+- Edit functionality allows modifying teams, kickoff times, and gameweek assignments
+- Prevents admin errors by providing correction capability after fixture creation
 
 **January 30, 2025** 
 - **MOBILE OPTIMIZATION:** Redesigned prediction form layout for mobile-first responsive design

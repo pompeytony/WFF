@@ -27,6 +27,10 @@ const Admin = () => {
     gameweekId: ""
   });
   
+  // Edit fixture form state
+  const [isEditFixtureOpen, setIsEditFixtureOpen] = useState(false);
+  const [editingFixture, setEditingFixture] = useState<any>(null);
+  
   // Add gameweek form state
   const [isAddGameweekOpen, setIsAddGameweekOpen] = useState(false);
   const [newGameweek, setNewGameweek] = useState({
@@ -107,6 +111,28 @@ const Admin = () => {
     onError: (error: any) => {
       toast({
         title: "Error adding fixture",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const editFixtureMutation = useMutation({
+    mutationFn: async ({ fixtureId, updateData }: { fixtureId: number; updateData: any }) => {
+      return apiRequest("PATCH", `/api/fixtures/${fixtureId}`, updateData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Fixture updated successfully!",
+        description: "The fixture has been modified.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
+      setIsEditFixtureOpen(false);
+      setEditingFixture(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating fixture",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -208,6 +234,28 @@ const Admin = () => {
     };
     
     addGameweekMutation.mutate(gameweekData);
+  };
+
+  const handleEditFixture = (fixture: any) => {
+    setEditingFixture(fixture);
+    setIsEditFixtureOpen(true);
+  };
+
+  const handleUpdateFixture = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingFixture) return;
+
+    const updateData = {
+      homeTeam: editingFixture.homeTeam,
+      awayTeam: editingFixture.awayTeam,
+      kickoffTime: new Date(editingFixture.kickoffTime).toISOString(),
+      gameweekId: editingFixture.gameweekId,
+    };
+
+    editFixtureMutation.mutate({
+      fixtureId: editingFixture.id,
+      updateData
+    });
   };
 
   const incompleteFixtures = fixtures?.filter((f: any) => !f.isComplete) || [];
@@ -378,6 +426,118 @@ const Admin = () => {
                     {addFixtureMutation.isPending ? "Adding..." : "Add Fixture"}
                   </Button>
                 </form>
+              </DialogContent>
+            </Dialog>
+
+            <Button variant="outline" className="w-full">
+              <i className="fas fa-edit mr-2"></i>
+              Edit Existing Fixtures
+            </Button>
+
+            {/* Fixtures List for Editing */}
+            <div className="space-y-2 max-h-60 overflow-y-auto">
+              {fixtures?.map((fixture: any) => (
+                <div key={fixture.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                  <div className="text-sm">
+                    <div className="font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</div>
+                    <div className="text-gray-500">{new Date(fixture.kickoffTime).toLocaleDateString()}</div>
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => handleEditFixture(fixture)}
+                    data-testid={`button-edit-fixture-${fixture.id}`}
+                  >
+                    <i className="fas fa-edit mr-1"></i>
+                    Edit
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* Edit Fixture Dialog */}
+            <Dialog open={isEditFixtureOpen} onOpenChange={setIsEditFixtureOpen}>
+              <DialogContent data-testid="dialog-edit-fixture">
+                <DialogHeader>
+                  <DialogTitle>Edit Fixture</DialogTitle>
+                </DialogHeader>
+                {editingFixture && (
+                  <form onSubmit={handleUpdateFixture} className="space-y-4">
+                    <div>
+                      <Label htmlFor="edit-home-team">Home Team</Label>
+                      <Input
+                        id="edit-home-team"
+                        type="text"
+                        value={editingFixture.homeTeam || ""}
+                        onChange={(e) => setEditingFixture({...editingFixture, homeTeam: e.target.value})}
+                        placeholder="e.g. Arsenal"
+                        data-testid="input-edit-home-team"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-away-team">Away Team</Label>
+                      <Input
+                        id="edit-away-team"
+                        type="text"
+                        value={editingFixture.awayTeam || ""}
+                        onChange={(e) => setEditingFixture({...editingFixture, awayTeam: e.target.value})}
+                        placeholder="e.g. Chelsea"
+                        data-testid="input-edit-away-team"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-kickoff-time">Kickoff Time</Label>
+                      <Input
+                        id="edit-kickoff-time"
+                        type="datetime-local"
+                        value={editingFixture.kickoffTime ? new Date(editingFixture.kickoffTime).toISOString().slice(0, 16) : ""}
+                        onChange={(e) => setEditingFixture({...editingFixture, kickoffTime: e.target.value})}
+                        data-testid="input-edit-kickoff-time"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="edit-gameweek">Gameweek</Label>
+                      <Select 
+                        onValueChange={(value) => setEditingFixture({...editingFixture, gameweekId: parseInt(value)})}
+                        value={editingFixture.gameweekId?.toString()}
+                      >
+                        <SelectTrigger data-testid="select-edit-gameweek">
+                          <SelectValue placeholder="Select gameweek" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {gameweeks?.map((gameweek: any) => (
+                            <SelectItem key={gameweek.id} value={gameweek.id.toString()}>
+                              {gameweek.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="flex space-x-2">
+                      <Button 
+                        type="button"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => setIsEditFixtureOpen(false)}
+                        data-testid="button-cancel-edit-fixture"
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        type="submit" 
+                        className="flex-1 bg-football-green hover:bg-green-600"
+                        disabled={editFixtureMutation.isPending}
+                        data-testid="button-update-fixture"
+                      >
+                        {editFixtureMutation.isPending ? "Updating..." : "Update Fixture"}
+                      </Button>
+                    </div>
+                  </form>
+                )}
               </DialogContent>
             </Dialog>
 

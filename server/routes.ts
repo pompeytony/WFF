@@ -308,6 +308,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/fixtures/:id", requireAdmin, async (req, res) => {
+    try {
+      const fixtureId = Number(req.params.id);
+      const updateData = req.body;
+      
+      // Update fixture details (teams, kickoff time, etc.)
+      await storage.updateFixture(fixtureId, updateData);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating fixture:", error);
+      res.status(400).json({ error: "Invalid fixture data" });
+    }
+  });
+
   app.patch("/api/fixtures/:id/result", requireAdmin, async (req, res) => {
     try {
       const fixtureId = Number(req.params.id);

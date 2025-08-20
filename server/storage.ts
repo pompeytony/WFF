@@ -35,6 +35,7 @@ export interface IStorage {
   getFixtures(): Promise<Fixture[]>;
   getFixturesByGameweek(gameweekId: number): Promise<Fixture[]>;
   createFixture(fixture: InsertFixture): Promise<Fixture>;
+  updateFixture(id: number, updateData: Partial<InsertFixture>): Promise<void>;
   updateFixtureResult(id: number, homeScore: number, awayScore: number): Promise<void>;
   
   // Predictions
@@ -288,6 +289,13 @@ export class MemStorage implements IStorage {
     };
     this.fixtures.set(id, newFixture);
     return newFixture;
+  }
+
+  async updateFixture(id: number, updateData: Partial<InsertFixture>): Promise<void> {
+    const fixture = this.fixtures.get(id);
+    if (fixture) {
+      Object.assign(fixture, updateData);
+    }
   }
 
   async updateFixtureResult(id: number, homeScore: number, awayScore: number): Promise<void> {
@@ -562,6 +570,12 @@ export class DatabaseStorage implements IStorage {
       .values(insertFixture)
       .returning();
     return fixture;
+  }
+
+  async updateFixture(id: number, updateData: Partial<InsertFixture>): Promise<void> {
+    await db.update(fixtures)
+      .set(updateData)
+      .where(eq(fixtures.id, id));
   }
 
   async updateFixtureResult(id: number, homeScore: number, awayScore: number): Promise<void> {
