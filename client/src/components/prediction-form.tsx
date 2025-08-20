@@ -19,13 +19,17 @@ import type { Gameweek, Fixture, Prediction } from "@shared/schema";
 // Helper function for UK timezone display
 const formatUKTime = (utcDateString: string): string => {
   const date = new Date(utcDateString);
-  return date.toLocaleDateString('en-US', {
+  
+  // Use toLocaleString to get both date and time parts properly
+  const ukTime = date.toLocaleString('en-US', {
     timeZone: 'Europe/London',
     weekday: 'short',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   });
+  
+  return ukTime;
 };
 
 interface PredictionFormProps {
