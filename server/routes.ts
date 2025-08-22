@@ -745,34 +745,13 @@ async function calculateLiveGameweekScores(gameweekId: number) {
   const allPlayers = await storage.getPlayers();
   const playerScores = new Map<number, number>();
   
-  // Calculate current points based on completed fixtures
+  // Sum up stored points from predictions on completed fixtures
   for (const prediction of predictions) {
     const fixture = fixtures.find(f => f.id === prediction.fixtureId);
     if (!fixture || !fixture.isComplete) continue; // Only count completed fixtures
     
-    let points = 0;
-    
-    // Check for correct score (5 points)
-    if (prediction.homeScore === fixture.homeScore && prediction.awayScore === fixture.awayScore) {
-      points = 5;
-    }
-    // Check for correct result (3 points)
-    else {
-      const predictedResult = prediction.homeScore > prediction.awayScore ? 'home' : 
-                             prediction.homeScore < prediction.awayScore ? 'away' : 'draw';
-      const actualResult = fixture.homeScore! > fixture.awayScore! ? 'home' :
-                          fixture.homeScore! < fixture.awayScore! ? 'away' : 'draw';
-      
-      if (predictedResult === actualResult) {
-        points = 3;
-      }
-    }
-    
-    // Double points if joker was played
-    if (prediction.isJoker) {
-      points *= 2;
-    }
-    
+    // Use the stored points that were calculated when the result was entered
+    const points = prediction.points || 0;
     const currentScore = playerScores.get(prediction.playerId) || 0;
     playerScores.set(prediction.playerId, currentScore + points);
   }
