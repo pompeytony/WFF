@@ -35,6 +35,10 @@ const LeagueTable = () => {
   // Get active gameweek for live scoring
   const activeGameweek = gameweeks?.find(gw => gw.isActive && !gw.isComplete);
   
+  // Get most recently completed gameweek for final table
+  const mostRecentCompletedGameweek = gameweeks?.filter(gw => gw.isComplete)
+    .sort((a, b) => b.id - a.id)[0]; // Sort by ID desc to get most recent
+  
   // Get live scores for active gameweek
   const { data: liveScores, isLoading: liveLoading } = useQuery<LiveScore[]>({
     queryKey: ["/api/live-scores", activeGameweek?.id],
@@ -46,12 +50,22 @@ const LeagueTable = () => {
     refetchInterval: 30000, // Refetch every 30 seconds for live updates
   });
 
+  // Get final scores for most recently completed gameweek
+  const { data: finalWeeklyScores, isLoading: finalWeeklyLoading } = useQuery<LiveScore[]>({
+    queryKey: ["/api/weekly-scores", mostRecentCompletedGameweek?.id],
+    queryFn: () => {
+      if (!mostRecentCompletedGameweek) return Promise.resolve([]);
+      return fetch(`/api/weekly-scores/${mostRecentCompletedGameweek.id}`).then(res => res.json());
+    },
+    enabled: !!mostRecentCompletedGameweek,
+  });
+
   // Get cumulative scores across all completed gameweeks
   const { data: cumulativeScores, isLoading: cumulativeLoading } = useQuery<CumulativeScore[]>({
     queryKey: ["/api/cumulative-scores"],
   });
 
-  const isLoading = gameweeksLoading || liveLoading || cumulativeLoading;
+  const isLoading = gameweeksLoading || liveLoading || cumulativeLoading || finalWeeklyLoading;
 
   const renderTable = (
     title: string,
@@ -169,6 +183,13 @@ const LeagueTable = () => {
         liveScores,
         "Updates in real-time as each match result is entered. Manager of the week bonus (5 points) is added when all matches are complete.",
         true
+      )}
+
+      {/* Final Weekly Table - Show most recently completed gameweek */}
+      {mostRecentCompletedGameweek && finalWeeklyScores && finalWeeklyScores.length > 0 && renderTable(
+        `Final Weekly Table - ${mostRecentCompletedGameweek.name}`,
+        finalWeeklyScores,
+        "Final standings from the most recently completed gameweek. Manager of the week bonus included."
       )}
 
       {/* Cumulative League Table */}

@@ -438,6 +438,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get weekly scores for a specific gameweek (alternative route pattern)
+  app.get("/api/weekly-scores/:gameweekId", async (req, res) => {
+    try {
+      const gameweekId = Number(req.params.gameweekId);
+      const scores = await storage.getWeeklyScoresByGameweek(gameweekId);
+      
+      // Get player details and sort by total points
+      const players = await storage.getPlayers();
+      const playersMap = new Map(players.map(p => [p.id, p]));
+      
+      const leagueTable = scores
+        .map(score => ({
+          ...score,
+          player: playersMap.get(score.playerId),
+        }))
+        .filter(entry => entry.player)
+        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
+      
+      res.json(leagueTable);
+    } catch (error) {
+      console.error("Error fetching weekly scores:", error);
+      res.status(500).json({ error: "Failed to fetch weekly scores" });
+    }
+  });
+
   // Live scoring - calculate current points for active gameweek
   app.get("/api/live-scores/:gameweekId", async (req, res) => {
     try {
