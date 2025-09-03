@@ -103,12 +103,42 @@ const PredictionsOverview = () => {
         },
       });
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || errorData.error || 'Failed to fetch predictions');
+        let errorMessage = 'Failed to fetch predictions';
+        try {
+          const errorData = await response.json();
+          if (response.status === 401) {
+            errorMessage = 'Please log in again to view predictions';
+          } else if (response.status === 403) {
+            errorMessage = errorData.message || 'Predictions not yet available - deadline has not passed';
+          } else if (response.status === 404) {
+            errorMessage = 'Gameweek not found';
+          } else {
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          }
+        } catch (parseError) {
+          // If we can't parse the error response, use status-based messages
+          if (response.status === 401) {
+            errorMessage = 'Please log in again to view predictions';
+          } else if (response.status === 403) {
+            errorMessage = 'Predictions not yet available - deadline has not passed';
+          }
+        }
+        throw new Error(errorMessage);
       }
       return response.json();
     },
     enabled: !!targetGameweekId,
+    retry: (failureCount, error: any) => {
+      // Don't retry if it's an auth error
+      if (error?.message?.includes('log in again')) {
+        return false;
+      }
+      // Don't retry if deadline hasn't passed
+      if (error?.message?.includes('deadline')) {
+        return false;
+      }
+      return failureCount < 2;
+    },
   });
 
   const renderPredictionScore = (homeScore: number, awayScore: number, isJoker: boolean) => (
