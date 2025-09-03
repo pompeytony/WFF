@@ -1,83 +1,247 @@
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { Gameweek } from "@shared/schema";
+
+interface PredictionData {
+  gameweek: {
+    id: number;
+    name: string;
+    type: string;
+    deadline: string | null;
+    isActive: boolean;
+    isComplete: boolean;
+  };
+  deadlinePassed: boolean;
+  totalPredictions: number;
+  totalFixtures: number;
+  totalPlayers: number;
+  byFixture: FixturePredictions[];
+  byPlayer: PlayerPredictions[];
+}
+
+interface FixturePredictions {
+  fixture: {
+    id: number;
+    homeTeam: string;
+    awayTeam: string;
+    kickoffTime: string;
+    homeScore: number | null;
+    awayScore: number | null;
+    isComplete: boolean;
+  };
+  predictions: {
+    player: {
+      id: number;
+      name: string;
+      email: string;
+    };
+    homeScore: number;
+    awayScore: number;
+    isJoker: boolean;
+    points: number;
+  }[];
+}
+
+interface PlayerPredictions {
+  player: {
+    id: number;
+    name: string;
+    email: string;
+  };
+  jokerFixture: {
+    id: number;
+    homeTeam: string;
+    awayTeam: string;
+  } | null;
+  predictions: {
+    fixture: {
+      id: number;
+      homeTeam: string;
+      awayTeam: string;
+      kickoffTime: string;
+      homeScore: number | null;
+      awayScore: number | null;
+      isComplete: boolean;
+    };
+    homeScore: number;
+    awayScore: number;
+    isJoker: boolean;
+    points: number;
+  }[];
+}
 
 const PredictionsOverview = () => {
-  const { toast } = useToast();
   const [selectedGameweekId, setSelectedGameweekId] = useState<string>("");
-  const [reminderResponse, setReminderResponse] = useState<any>(null);
-  const [showReminderDialog, setShowReminderDialog] = useState(false);
+  const [viewMode, setViewMode] = useState<"fixture" | "player">("fixture");
 
-  const { data: gameweeks } = useQuery({
+  // Fetch all gameweeks for selector
+  const { data: gameweeks } = useQuery<Gameweek[]>({
     queryKey: ["/api/gameweeks"],
   });
 
-  const { data: activeGameweek } = useQuery({
+  // Get active gameweek as default
+  const { data: activeGameweek } = useQuery<Gameweek>({
     queryKey: ["/api/gameweeks/active"],
   });
 
   // Use selected gameweek or default to active gameweek
-  const targetGameweekId = selectedGameweekId || (activeGameweek as any)?.id?.toString();
+  const targetGameweekId = selectedGameweekId || activeGameweek?.id?.toString();
 
-  const { data: predictionsOverview, isLoading } = useQuery({
-    queryKey: ["/api/admin/predictions-overview", targetGameweekId],
+  // Fetch public predictions data
+  const { data: predictionsData, isLoading, error } = useQuery<PredictionData>({
+    queryKey: ["/api/predictions/public", targetGameweekId],
+    queryFn: async () => {
+      if (!targetGameweekId) return null;
+      const response = await fetch(`/api/predictions/public/${targetGameweekId}`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+      });
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || errorData.error || 'Failed to fetch predictions');
+      }
+      return response.json();
+    },
     enabled: !!targetGameweekId,
   });
 
-  const { data: players } = useQuery({
-    queryKey: ["/api/players"],
-  });
+  const renderPredictionScore = (homeScore: number, awayScore: number, isJoker: boolean) => (
+    <span className={`font-mono text-sm px-2 py-1 rounded ${
+      isJoker ? 'bg-football-gold text-white font-bold' : 'bg-gray-100'
+    }`}>
+      {homeScore}-{awayScore}
+      {isJoker && <span className="ml-1">🃏</span>}
+    </span>
+  );
 
-  const sendReminderMutation = useMutation({
-    mutationFn: async ({ type, fixtureId, playerIds }: { type: 'all' | 'fixture', fixtureId?: number, playerIds?: number[] }) => {
-      const response = await apiRequest("POST", "/api/admin/send-reminders", { 
-        gameweekId: parseInt(targetGameweekId), 
-        type, 
-        fixtureId, 
-        playerIds 
-      });
-      return await response.json();
-    },
-    onSuccess: (response, variables) => {
-      console.log("Reminder response received:", response);
-      setReminderResponse(response);
-      setShowReminderDialog(true);
-      
-      if (variables.type === 'all') {
-        toast({
-          title: "Reminder details prepared!",
-          description: "WhatsApp message ready for family group chat.",
-        });
-      } else {
-        toast({
-          title: "Fixture reminder prepared!",
-          description: "Contact details and template are ready.",
-        });
-      }
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Error sending reminders",
-        description: error.message || "Please try again",
-        variant: "destructive",
-      });
-    },
-  });
+  const renderFixtureView = () => (
+    <div className="space-y-6">
+      {predictionsData?.byFixture.map((fixtureData) => (
+        <Card key={fixtureData.fixture.id}>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <i className="fas fa-futbol text-football-gold"></i>
+                <span className="text-football-navy">
+                  {fixtureData.fixture.homeTeam} vs {fixtureData.fixture.awayTeam}
+                </span>
+                {fixtureData.fixture.isComplete && (
+                  <Badge className="bg-football-green text-white">
+                    Final: {fixtureData.fixture.homeScore}-{fixtureData.fixture.awayScore}
+                  </Badge>
+                )}
+              </div>
+              <div className="text-sm text-gray-500">
+                {new Date(fixtureData.fixture.kickoffTime).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+              {fixtureData.predictions.map((prediction) => (
+                <div
+                  key={prediction.player.id}
+                  className={`p-3 rounded-lg border ${
+                    prediction.isJoker ? 'border-football-gold bg-football-gold/10' : 'border-gray-200 bg-white'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-sm">{prediction.player.name}</span>
+                    {fixtureData.fixture.isComplete && (
+                      <Badge variant="outline" className="text-xs">
+                        {prediction.points}pts
+                      </Badge>
+                    )}
+                  </div>
+                  <div className="mt-1">
+                    {renderPredictionScore(prediction.homeScore, prediction.awayScore, prediction.isJoker)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+
+  const renderPlayerView = () => (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {predictionsData?.byPlayer.map((playerData) => (
+        <Card key={playerData.player.id}>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <i className="fas fa-user text-football-navy"></i>
+                <span className="text-football-navy">{playerData.player.name}</span>
+              </div>
+              {playerData.jokerFixture && (
+                <Badge className="bg-football-gold text-white">
+                  🃏 {playerData.jokerFixture.homeTeam} vs {playerData.jokerFixture.awayTeam}
+                </Badge>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {playerData.predictions.map((prediction) => (
+                <div
+                  key={prediction.fixture.id}
+                  className={`flex items-center justify-between p-3 rounded-lg ${
+                    prediction.isJoker ? 'bg-football-gold/10 border border-football-gold' : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">
+                      {prediction.fixture.homeTeam} vs {prediction.fixture.awayTeam}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(prediction.fixture.kickoffTime).toLocaleDateString('en-US', {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {renderPredictionScore(prediction.homeScore, prediction.awayScore, prediction.isJoker)}
+                    {prediction.fixture.isComplete && (
+                      <Badge variant="outline" className="text-xs">
+                        {prediction.points}pts
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
 
   if (isLoading) {
     return (
       <main className="container mx-auto px-4 py-8">
-        <div className="animate-pulse">
-          <div className="bg-gray-200 h-8 w-64 rounded mb-6"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
+        <div className="animate-pulse space-y-6">
+          <div className="bg-gray-200 h-8 w-64 rounded"></div>
+          <div className="bg-gray-200 h-16 rounded-xl"></div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {[1, 2, 3, 4].map((i) => (
               <div key={i} className="bg-gray-200 h-48 rounded-xl"></div>
             ))}
           </div>
@@ -88,52 +252,101 @@ const PredictionsOverview = () => {
 
   return (
     <main className="container mx-auto px-4 py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold text-football-navy">
-          <i className="fas fa-clipboard-list mr-3 text-football-gold"></i>
-          Player Predictions Overview
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold text-football-navy mb-2">
+          <i className="fas fa-eye mr-3 text-football-green"></i>
+          Predictions Overview
         </h1>
+        <p className="text-gray-600">
+          View all player predictions after the submission deadline passes
+        </p>
       </div>
 
       {/* Gameweek Selector */}
       <Card className="mb-6">
         <CardContent className="pt-6">
-          <div className="flex items-center space-x-4">
-            <label className="text-sm font-medium">Select Gameweek:</label>
-            <Select value={selectedGameweekId} onValueChange={setSelectedGameweekId}>
-              <SelectTrigger className="w-64">
-                <SelectValue placeholder="Choose gameweek" />
-              </SelectTrigger>
-              <SelectContent>
-                {(gameweeks as any)?.map((gameweek: any) => (
-                  <SelectItem key={gameweek.id} value={gameweek.id.toString()}>
-                    {gameweek.name} ({gameweek.type})
-                    {gameweek.isActive && <span className="ml-2 text-green-600">• Active</span>}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-4 sm:space-y-0 sm:space-x-6">
+            <div className="flex items-center space-x-4">
+              <label className="text-sm font-medium whitespace-nowrap">Select Gameweek:</label>
+              <Select value={selectedGameweekId} onValueChange={setSelectedGameweekId}>
+                <SelectTrigger className="w-64">
+                  <SelectValue placeholder="Choose gameweek" />
+                </SelectTrigger>
+                <SelectContent>
+                  {gameweeks?.map((gameweek) => (
+                    <SelectItem key={gameweek.id} value={gameweek.id.toString()}>
+                      {gameweek.name} ({gameweek.type})
+                      {gameweek.isActive && <span className="ml-2 text-green-600">• Active</span>}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {predictionsData && (
+              <div className="flex items-center space-x-4">
+                <label className="text-sm font-medium whitespace-nowrap">View:</label>
+                <Tabs value={viewMode} onValueChange={(value) => setViewMode(value as "fixture" | "player")}>
+                  <TabsList>
+                    <TabsTrigger value="fixture">By Fixture</TabsTrigger>
+                    <TabsTrigger value="player">By Player</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {!predictionsOverview ? (
+      {/* Error State */}
+      {error && (
         <Card>
           <CardContent className="text-center py-12">
-            <p className="text-gray-500">Select a gameweek to view predictions overview</p>
+            <i className="fas fa-lock text-4xl text-gray-400 mb-4"></i>
+            <h3 className="text-xl font-semibold text-football-navy mb-2">Predictions Not Available</h3>
+            <p className="text-gray-600 mb-4">{(error as Error).message}</p>
+            {predictionsData?.deadlinePassed === false && predictionsData?.gameweek?.deadline && (
+              <p className="text-sm text-gray-500">
+                Predictions will be visible after:{" "}
+                <span className="font-medium">
+                  {new Date(predictionsData.gameweek.deadline).toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>
+              </p>
+            )}
           </CardContent>
         </Card>
-      ) : (
+      )}
+
+      {/* No Gameweek Selected */}
+      {!targetGameweekId && !error && (
+        <Card>
+          <CardContent className="text-center py-12">
+            <i className="fas fa-calendar-alt text-4xl text-gray-400 mb-4"></i>
+            <h3 className="text-xl font-semibold text-football-navy mb-2">Select a Gameweek</h3>
+            <p className="text-gray-600">Choose a gameweek from the dropdown above to view predictions.</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Predictions Data */}
+      {predictionsData && !error && (
         <>
           {/* Summary Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
             <Card>
               <CardContent className="pt-6">
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-royal-blue">
-                    {(predictionsOverview as any).summary.totalPlayers}
+                  <div className="text-2xl font-bold text-football-navy">
+                    {predictionsData.totalPlayers}
                   </div>
-                  <div className="text-sm text-gray-600">Total Players</div>
+                  <div className="text-sm text-gray-600">Players Participated</div>
                 </div>
               </CardContent>
             </Card>
@@ -141,19 +354,9 @@ const PredictionsOverview = () => {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-football-green">
-                    {(predictionsOverview as any).summary.playersSubmitted}
+                    {predictionsData.totalFixtures}
                   </div>
-                  <div className="text-sm text-gray-600">Submitted</div>
-                </div>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-accent">
-                    {(predictionsOverview as any).summary.playersPending}
-                  </div>
-                  <div className="text-sm text-gray-600">Pending</div>
+                  <div className="text-sm text-gray-600">Fixtures</div>
                 </div>
               </CardContent>
             </Card>
@@ -161,250 +364,49 @@ const PredictionsOverview = () => {
               <CardContent className="pt-6">
                 <div className="text-center">
                   <div className="text-2xl font-bold text-football-gold">
-                    {Math.round(((predictionsOverview as any).summary.playersSubmitted / (predictionsOverview as any).summary.totalPlayers) * 100)}%
+                    {predictionsData.totalPredictions}
                   </div>
-                  <div className="text-sm text-gray-600">Completion Rate</div>
+                  <div className="text-sm text-gray-600">Total Predictions</div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Fixtures Overview */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-football-navy">
-                  <i className="fas fa-check-circle mr-2 text-football-green"></i>
-                  Players with Complete Predictions
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(predictionsOverview as any).playersCompleted.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">No complete predictions yet</p>
-                ) : (
-                  <div className="space-y-2">
-                    {(predictionsOverview as any).playersCompleted.map((player: any) => (
-                      <div key={player.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                        <span className="font-medium">{player.name}</span>
-                        <Badge variant="secondary" className="bg-football-green text-white">
-                          Complete ({player.predictionsCount}/{(predictionsOverview as any).totalFixtures})
-                        </Badge>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-football-navy flex items-center justify-between">
-                  <div>
-                    <i className="fas fa-exclamation-triangle mr-2 text-red-accent"></i>
-                    Players Needing Reminders
-                  </div>
-                  {(predictionsOverview as any).playersPending.length > 0 && (
-                    <Button
-                      size="sm"
-                      onClick={() => sendReminderMutation.mutate({ 
-                        type: 'all',
-                        playerIds: (predictionsOverview as any).playersPending.map((p: any) => p.id)
-                      })}
-                      disabled={sendReminderMutation.isPending}
-                      className="bg-red-accent hover:bg-red-accent-dark"
-                    >
-                      <i className="fas fa-bullhorn mr-1"></i>
-                      Remind All
-                    </Button>
+          {/* Gameweek Info */}
+          <Card className="mb-6">
+            <CardContent className="pt-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-football-navy">
+                    {predictionsData.gameweek.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 capitalize">
+                    {predictionsData.gameweek.type.replace('-', ' ')} • 
+                    {predictionsData.gameweek.isActive ? ' Active' : ''}
+                    {predictionsData.gameweek.isComplete ? ' Complete' : ''}
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  {predictionsData.deadlinePassed ? (
+                    <Badge className="bg-football-green text-white">
+                      <i className="fas fa-unlock mr-1"></i>
+                      Predictions Visible
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-gray-600">
+                      <i className="fas fa-clock mr-1"></i>
+                      Deadline Pending
+                    </Badge>
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {(predictionsOverview as any).playersPending.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">All players have submitted!</p>
-                ) : (
-                  <div className="space-y-2">
-                    {(predictionsOverview as any).playersPending.map((player: any) => (
-                      <div key={player.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
-                        <div>
-                          <span className="font-medium">{player.name}</span>
-                          <div className="text-sm text-gray-600">{player.email}</div>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge variant="destructive">
-                            {player.predictionsCount}/{(predictionsOverview as any).totalFixtures}
-                          </Badge>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => sendReminderMutation.mutate({ 
-                              type: 'fixture', 
-                              playerIds: [player.id] 
-                            })}
-                            disabled={sendReminderMutation.isPending}
-                            className="text-xs"
-                          >
-                            <i className="fas fa-envelope mr-1"></i>
-                            Remind
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Fixture by Fixture Breakdown */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-football-navy">
-                <i className="fas fa-futbol mr-2 text-football-gold"></i>
-                Fixture by Fixture Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-3 px-4">Fixture</th>
-                      <th className="text-center py-3 px-4">Kickoff</th>
-                      <th className="text-center py-3 px-4">Predictions</th>
-                      <th className="text-center py-3 px-4">Missing Players</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(predictionsOverview as any).fixtureBreakdown.map((fixture: any) => (
-                      <tr key={fixture.id} className="border-b hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <div className="font-semibold">{fixture.homeTeam} vs {fixture.awayTeam}</div>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <div className="text-sm">
-                            {new Date(fixture.kickoffTime).toLocaleDateString('en-US', {
-                              weekday: 'short',
-                              month: 'short',
-                              day: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                            })}
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          <Badge variant={fixture.predictionsCount === (predictionsOverview as any).summary.totalPlayers ? "secondary" : "destructive"}>
-                            {fixture.predictionsCount}/{(predictionsOverview as any).summary.totalPlayers}
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4 text-center">
-                          {fixture.missingPlayers.length === 0 ? (
-                            <Badge variant="secondary" className="bg-football-green text-white">All Set</Badge>
-                          ) : (
-                            <div className="text-sm text-gray-600">
-                              {fixture.missingPlayers.slice(0, 3).map((player: any) => player.name).join(", ")}
-                              {fixture.missingPlayers.length > 3 && ` +${fixture.missingPlayers.length - 3} more`}
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                </div>
               </div>
             </CardContent>
           </Card>
+
+          {/* View Toggle Content */}
+          {viewMode === "fixture" ? renderFixtureView() : renderPlayerView()}
         </>
       )}
-
-      {/* Reminder Dialog */}
-      <Dialog open={showReminderDialog} onOpenChange={setShowReminderDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="text-football-navy">
-              <i className="fas fa-envelope mr-2 text-football-gold"></i>
-              Reminder Details Ready
-            </DialogTitle>
-          </DialogHeader>
-          
-          {reminderResponse && (
-            <div className="space-y-6">
-              <div className="bg-football-gold/10 p-4 rounded-lg">
-                <h3 className="font-semibold text-football-navy mb-2">
-                  Ready to send to {reminderResponse.playersContacted || 0} player(s)
-                </h3>
-                <p className="text-sm text-gray-600">{reminderResponse.message || "Reminder details prepared"}</p>
-              </div>
-
-
-
-              <div>
-                <h3 className="font-semibold text-football-navy mb-2">Players to Contact:</h3>
-                <div className="bg-gray-50 p-3 rounded border">
-                  <div className="text-sm">
-                    <strong>Names:</strong> {reminderResponse.playerNames?.join(", ")}
-                  </div>
-                  <div className="text-sm mt-1">
-                    <strong>Emails:</strong> {reminderResponse.playerEmails?.join("; ")}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-football-navy mb-2">
-                  <i className="fab fa-whatsapp mr-2 text-green-500"></i>
-                  WhatsApp Message (Recommended)
-                </h3>
-                <Textarea
-                  value={reminderResponse.whatsappMessage || "No WhatsApp message available"}
-                  readOnly
-                  className="min-h-[200px] font-mono text-sm"
-                />
-                <Button
-                  className="mt-2 bg-green-500 hover:bg-green-600"
-                  onClick={() => navigator.clipboard.writeText(reminderResponse.whatsappMessage || "")}
-                  disabled={!reminderResponse.whatsappMessage}
-                >
-                  <i className="fab fa-whatsapp mr-2"></i>
-                  Copy WhatsApp Message
-                </Button>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-football-navy mb-2">Email Template (Alternative):</h3>
-                <Textarea
-                  value={reminderResponse.emailTemplate || "No email template available"}
-                  readOnly
-                  className="min-h-[250px] font-mono text-sm"
-                />
-                <Button
-                  className="mt-2"
-                  onClick={() => navigator.clipboard.writeText(reminderResponse.emailTemplate || "")}
-                  disabled={!reminderResponse.emailTemplate}
-                >
-                  <i className="fas fa-copy mr-2"></i>
-                  Copy Email Template
-                </Button>
-              </div>
-
-              <div>
-                <h3 className="font-semibold text-football-navy mb-3">Sending Options:</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {reminderResponse.alternatives?.map((alt: any, index: number) => (
-                    <div key={index} className="border rounded-lg p-4 bg-white hover:shadow-md transition-shadow">
-                      <div className="flex items-center mb-2">
-                        <i className={`${alt.icon} text-white p-2 rounded ${alt.color} mr-3`}></i>
-                        <h4 className="font-medium text-football-navy">{alt.method}</h4>
-                      </div>
-                      <p className="text-sm text-gray-600">{alt.instruction}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
     </main>
   );
 };

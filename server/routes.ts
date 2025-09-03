@@ -413,6 +413,127 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Public predictions overview - available after deadline passes
+  app.get("/api/predictions/public/:gameweekId", requireAuth, async (req, res) => {
+    try {
+      const gameweekId = Number(req.params.gameweekId);
+      
+      // Get gameweek to check deadline
+      const gameweek = (await storage.getGameweeks()).find(gw => gw.id === gameweekId);
+      if (!gameweek) {
+        return res.status(404).json({ error: "Gameweek not found" });
+      }
+      
+      // Check if deadline has passed
+      const now = new Date();
+      const deadline = gameweek.deadline ? new Date(gameweek.deadline) : null;
+      
+      if (deadline && now < deadline) {
+        return res.status(403).json({ 
+          error: "Predictions not yet available",
+          message: "Predictions will be visible after the submission deadline",
+          deadline: deadline.toISOString(),
+          timeRemaining: deadline.getTime() - now.getTime()
+        });
+      }
+      
+      // Get all predictions for this gameweek with player and fixture details
+      const predictions = await storage.getPredictionsByGameweek(gameweekId);
+      const fixtures = await storage.getFixturesByGameweek(gameweekId);
+      const players = await storage.getPlayers();
+      
+      // Create lookup maps
+      const playersMap = new Map(players.map(p => [p.id, p]));
+      const fixturesMap = new Map(fixtures.map(f => [f.id, f]));
+      
+      // Enrich predictions with player and fixture details
+      const enrichedPredictions = predictions.map(prediction => ({
+        id: prediction.id,
+        homeScore: prediction.homeScore,
+        awayScore: prediction.awayScore,
+        isJoker: prediction.isJoker,
+        points: prediction.points,
+        player: playersMap.get(prediction.playerId),
+        fixture: fixturesMap.get(prediction.fixtureId)
+      })).filter(p => p.player && p.fixture);
+      
+      // Group by fixture for easy "by fixture" view
+      const byFixture = fixtures.map(fixture => ({
+        fixture: {
+          id: fixture.id,
+          homeTeam: fixture.homeTeam,
+          awayTeam: fixture.awayTeam,
+          kickoffTime: fixture.kickoffTime,
+          homeScore: fixture.homeScore,
+          awayScore: fixture.awayScore,
+          isComplete: fixture.isComplete
+        },
+        predictions: enrichedPredictions
+          .filter(p => p.fixture?.id === fixture.id)
+          .map(p => ({
+            player: p.player,
+            homeScore: p.homeScore,
+            awayScore: p.awayScore,
+            isJoker: p.isJoker,
+            points: p.points
+          }))
+          .sort((a, b) => a.player!.name.localeCompare(b.player!.name))
+      }));
+      
+      // Group by player for easy "by player" view
+      const byPlayer = players.map(player => {
+        const playerPredictions = enrichedPredictions.filter(p => p.player?.id === player.id);
+        const jokerFixture = playerPredictions.find(p => p.isJoker)?.fixture;
+        
+        return {
+          player,
+          jokerFixture: jokerFixture ? {
+            id: jokerFixture.id,
+            homeTeam: jokerFixture.homeTeam,
+            awayTeam: jokerFixture.awayTeam
+          } : null,
+          predictions: playerPredictions.map(p => ({
+            fixture: {
+              id: p.fixture!.id,
+              homeTeam: p.fixture!.homeTeam,
+              awayTeam: p.fixture!.awayTeam,
+              kickoffTime: p.fixture!.kickoffTime,
+              homeScore: p.fixture!.homeScore,
+              awayScore: p.fixture!.awayScore,
+              isComplete: p.fixture!.isComplete
+            },
+            homeScore: p.homeScore,
+            awayScore: p.awayScore,
+            isJoker: p.isJoker,
+            points: p.points
+          }))
+          .sort((a, b) => new Date(a.fixture.kickoffTime).getTime() - new Date(b.fixture.kickoffTime).getTime())
+        };
+      }).filter(p => p.predictions.length > 0); // Only include players who made predictions
+      
+      res.json({
+        gameweek: {
+          id: gameweek.id,
+          name: gameweek.name,
+          type: gameweek.type,
+          deadline: gameweek.deadline,
+          isActive: gameweek.isActive,
+          isComplete: gameweek.isComplete
+        },
+        deadlinePassed: !deadline || now >= deadline,
+        totalPredictions: enrichedPredictions.length,
+        totalFixtures: fixtures.length,
+        totalPlayers: byPlayer.length,
+        byFixture,
+        byPlayer
+      });
+      
+    } catch (error) {
+      console.error("Error fetching public predictions:", error);
+      res.status(500).json({ error: "Failed to fetch predictions" });
+    }
+  });
+
   // Weekly Scores and League Table
   app.get("/api/weekly-scores", async (req, res) => {
     const gameweekId = req.query.gameweekId;

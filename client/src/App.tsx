@@ -101,9 +101,10 @@ function Router() {
         <Route path="/league-table" component={LeagueTable} />
         <Route path="/results" component={Results} />
 
+        <Route path="/predictions-overview" component={PredictionsOverview} />
+        
         {user?.isAdmin && <Route path="/admin" component={Admin} />}
         {user?.isAdmin && <Route path="/players" component={Players} />}
-        {user?.isAdmin && <Route path="/predictions-overview" component={PredictionsOverview} />}
         <Route component={NotFound} />
       </Switch>
     </div>

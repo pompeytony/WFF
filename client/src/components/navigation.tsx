@@ -15,11 +15,11 @@ const Navigation = ({ user }: NavigationProps) => {
     { path: "/", label: "Dashboard", icon: "fas fa-home" },
     { path: "/league-table", label: "League Table", icon: "fas fa-table" },
     { path: "/results", label: "Results", icon: "fas fa-history" },
+    { path: "/predictions-overview", label: "Predictions", icon: "fas fa-eye" },
 
     ...(user?.isAdmin ? [
       { path: "/admin", label: "Admin", icon: "fas fa-cog" },
       { path: "/players", label: "Players", icon: "fas fa-users" },
-      { path: "/predictions-overview", label: "Predictions", icon: "fas fa-clipboard-list" },
     ] : []),
   ];
 
