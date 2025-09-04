@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import TeamDisplay from "@/components/team-display";
 import type { Fixture, Gameweek } from "@shared/schema";
 
 // Helper function for UK timezone display
@@ -78,8 +79,8 @@ const Results = () => {
                       </div>
                       
                       <div className="flex items-center space-x-6">
-                        <div className="text-right">
-                          <div className="font-semibold text-football-navy">{fixture.homeTeam}</div>
+                        <div className="text-right min-w-0 flex-1">
+                          <TeamDisplay teamName={fixture.homeTeam} size="medium" className="justify-end" />
                         </div>
                         
                         <div className="bg-white rounded-lg px-4 py-2 border border-gray-200">
@@ -88,8 +89,8 @@ const Results = () => {
                           </div>
                         </div>
                         
-                        <div className="text-left">
-                          <div className="font-semibold text-football-navy">{fixture.awayTeam}</div>
+                        <div className="text-left min-w-0 flex-1">
+                          <TeamDisplay teamName={fixture.awayTeam} size="medium" className="justify-start" />
                         </div>
                       </div>
                     </div>

@@ -14,6 +14,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import TeamDisplay from "@/components/team-display";
 import type { Gameweek, Fixture, Prediction } from "@shared/schema";
 
 // Helper function for UK timezone display
@@ -348,17 +349,12 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
                 {/* Teams and scores - mobile optimized */}
                 <div className="flex items-center justify-between">
                   {/* Home team */}
-                  <div className="flex items-center space-x-2 flex-1 min-w-0">
-                    <div className="text-sm font-semibold text-football-navy truncate">
-                      {fixture.homeTeam}
-                    </div>
-                    <div className={`w-10 h-10 ${getTeamColor(fixture.homeTeam)} rounded-full flex items-center justify-center flex-shrink-0`}>
-                      <span className={`text-xs font-bold ${
-                        fixture.homeTeam === 'Tottenham' ? 'text-gray-700' : 'text-white'
-                      }`}>
-                        {getTeamAbbreviation(fixture.homeTeam)}
-                      </span>
-                    </div>
+                  <div className="flex-1 min-w-0 mr-2">
+                    <TeamDisplay 
+                      teamName={fixture.homeTeam} 
+                      size="medium" 
+                      className="justify-start"
+                    />
                   </div>
 
                   {/* Score inputs - centered */}
@@ -387,17 +383,12 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
                   </div>
 
                   {/* Away team */}
-                  <div className="flex items-center space-x-2 flex-1 min-w-0 justify-end">
-                    <div className={`w-10 h-10 ${getTeamColor(fixture.awayTeam)} rounded-full flex items-center justify-center flex-shrink-0`}>
-                      <span className={`text-xs font-bold ${
-                        fixture.awayTeam === 'Tottenham' ? 'text-gray-700' : 'text-white'
-                      }`}>
-                        {getTeamAbbreviation(fixture.awayTeam)}
-                      </span>
-                    </div>
-                    <div className="text-sm font-semibold text-football-navy truncate text-right">
-                      {fixture.awayTeam}
-                    </div>
+                  <div className="flex-1 min-w-0 ml-2">
+                    <TeamDisplay 
+                      teamName={fixture.awayTeam} 
+                      size="medium" 
+                      className="justify-end"
+                    />
                   </div>
                 </div>
               </div>

@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import type { Fixture, Gameweek } from "@shared/schema";
+import { PREMIER_LEAGUE_TEAMS, getPremierLeagueTeamOptions, gameweekSupportsPremierLeagueTeams } from "@shared/premierLeagueTeams";
 
 // Helper functions for UK timezone handling
 const convertUTCToUKTime = (utcDateString: string): string => {
@@ -117,6 +118,26 @@ const Admin = () => {
     onError: (error: any) => {
       toast({
         title: "Error calculating scores",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateFixtureTeamsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest("POST", "/api/admin/update-fixture-teams", {});
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: "Team names updated!",
+        description: `Successfully updated ${data.updatedCount} fixtures with standardized Premier League team names.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating team names",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -436,27 +457,90 @@ const Admin = () => {
                     </Select>
                   </div>
 
-                  <div>
-                    <Label htmlFor="home-team">Home Team</Label>
-                    <Input
-                      id="home-team"
-                      type="text"
-                      value={newFixture.homeTeam}
-                      onChange={(e) => setNewFixture({...newFixture, homeTeam: e.target.value})}
-                      placeholder="e.g. Arsenal"
-                    />
-                  </div>
+                  {/* Dynamic team selection based on gameweek type */}
+                  {(() => {
+                    const selectedGameweek = gameweeks.find((gw: any) => gw.id.toString() === newFixture.gameweekId);
+                    const isPremierLeague = selectedGameweek && gameweekSupportsPremierLeagueTeams(selectedGameweek.type);
+                    const teamOptions = getPremierLeagueTeamOptions();
 
-                  <div>
-                    <Label htmlFor="away-team">Away Team</Label>
-                    <Input
-                      id="away-team"
-                      type="text"
-                      value={newFixture.awayTeam}
-                      onChange={(e) => setNewFixture({...newFixture, awayTeam: e.target.value})}
-                      placeholder="e.g. Chelsea"
-                    />
-                  </div>
+                    if (isPremierLeague) {
+                      return (
+                        <>
+                          <div>
+                            <Label htmlFor="home-team">Home Team</Label>
+                            <Select onValueChange={(value) => setNewFixture({...newFixture, homeTeam: value})}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select home team" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {teamOptions.map((team) => (
+                                  <SelectItem key={team.value} value={team.value}>
+                                    <div className="flex items-center">
+                                      <img 
+                                        src={team.badge.replace('@assets/', '/attached_assets/')} 
+                                        alt={team.label} 
+                                        className="w-4 h-4 mr-2" 
+                                      />
+                                      {team.label}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div>
+                            <Label htmlFor="away-team">Away Team</Label>
+                            <Select onValueChange={(value) => setNewFixture({...newFixture, awayTeam: value})}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select away team" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {teamOptions.map((team) => (
+                                  <SelectItem key={team.value} value={team.value}>
+                                    <div className="flex items-center">
+                                      <img 
+                                        src={team.badge.replace('@assets/', '/attached_assets/')} 
+                                        alt={team.label} 
+                                        className="w-4 h-4 mr-2" 
+                                      />
+                                      {team.label}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </>
+                      );
+                    } else {
+                      return (
+                        <>
+                          <div>
+                            <Label htmlFor="home-team">Home Team</Label>
+                            <Input
+                              id="home-team"
+                              type="text"
+                              value={newFixture.homeTeam}
+                              onChange={(e) => setNewFixture({...newFixture, homeTeam: e.target.value})}
+                              placeholder="e.g. England"
+                            />
+                          </div>
+
+                          <div>
+                            <Label htmlFor="away-team">Away Team</Label>
+                            <Input
+                              id="away-team"
+                              type="text"
+                              value={newFixture.awayTeam}
+                              onChange={(e) => setNewFixture({...newFixture, awayTeam: e.target.value})}
+                              placeholder="e.g. Spain"
+                            />
+                          </div>
+                        </>
+                      );
+                    }
+                  })()}
 
                   <div>
                     <Label htmlFor="kickoff-time">Kickoff Time (UK Time)</Label>
@@ -527,29 +611,98 @@ const Admin = () => {
                 </DialogHeader>
                 {editingFixture && (
                   <form onSubmit={handleUpdateFixture} className="space-y-4">
-                    <div>
-                      <Label htmlFor="edit-home-team">Home Team</Label>
-                      <Input
-                        id="edit-home-team"
-                        type="text"
-                        value={editingFixture.homeTeam || ""}
-                        onChange={(e) => setEditingFixture({...editingFixture, homeTeam: e.target.value})}
-                        placeholder="e.g. Arsenal"
-                        data-testid="input-edit-home-team"
-                      />
-                    </div>
+                    {/* Dynamic team selection for edit form */}
+                    {(() => {
+                      const editGameweek = gameweeks.find((gw: any) => gw.id === editingFixture.gameweekId);
+                      const isEditPremierLeague = editGameweek && gameweekSupportsPremierLeagueTeams(editGameweek.type);
+                      const editTeamOptions = getPremierLeagueTeamOptions();
 
-                    <div>
-                      <Label htmlFor="edit-away-team">Away Team</Label>
-                      <Input
-                        id="edit-away-team"
-                        type="text"
-                        value={editingFixture.awayTeam || ""}
-                        onChange={(e) => setEditingFixture({...editingFixture, awayTeam: e.target.value})}
-                        placeholder="e.g. Chelsea"
-                        data-testid="input-edit-away-team"
-                      />
-                    </div>
+                      if (isEditPremierLeague) {
+                        return (
+                          <>
+                            <div>
+                              <Label htmlFor="edit-home-team">Home Team</Label>
+                              <Select 
+                                onValueChange={(value) => setEditingFixture({...editingFixture, homeTeam: value})}
+                                value={editingFixture.homeTeam || ""}
+                              >
+                                <SelectTrigger data-testid="select-edit-home-team">
+                                  <SelectValue placeholder="Select home team" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {editTeamOptions.map((team) => (
+                                    <SelectItem key={team.value} value={team.value}>
+                                      <div className="flex items-center">
+                                        <img 
+                                          src={team.badge.replace('@assets/', '/attached_assets/')} 
+                                          alt={team.label} 
+                                          className="w-4 h-4 mr-2" 
+                                        />
+                                        {team.label}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+
+                            <div>
+                              <Label htmlFor="edit-away-team">Away Team</Label>
+                              <Select 
+                                onValueChange={(value) => setEditingFixture({...editingFixture, awayTeam: value})}
+                                value={editingFixture.awayTeam || ""}
+                              >
+                                <SelectTrigger data-testid="select-edit-away-team">
+                                  <SelectValue placeholder="Select away team" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  {editTeamOptions.map((team) => (
+                                    <SelectItem key={team.value} value={team.value}>
+                                      <div className="flex items-center">
+                                        <img 
+                                          src={team.badge.replace('@assets/', '/attached_assets/')} 
+                                          alt={team.label} 
+                                          className="w-4 h-4 mr-2" 
+                                        />
+                                        {team.label}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </>
+                        );
+                      } else {
+                        return (
+                          <>
+                            <div>
+                              <Label htmlFor="edit-home-team">Home Team</Label>
+                              <Input
+                                id="edit-home-team"
+                                type="text"
+                                value={editingFixture.homeTeam || ""}
+                                onChange={(e) => setEditingFixture({...editingFixture, homeTeam: e.target.value})}
+                                placeholder="e.g. England"
+                                data-testid="input-edit-home-team"
+                              />
+                            </div>
+
+                            <div>
+                              <Label htmlFor="edit-away-team">Away Team</Label>
+                              <Input
+                                id="edit-away-team"
+                                type="text"
+                                value={editingFixture.awayTeam || ""}
+                                onChange={(e) => setEditingFixture({...editingFixture, awayTeam: e.target.value})}
+                                placeholder="e.g. Spain"
+                                data-testid="input-edit-away-team"
+                              />
+                            </div>
+                          </>
+                        );
+                      }
+                    })()}
 
                     <div>
                       <Label htmlFor="edit-kickoff-time">Kickoff Time (UK Time)</Label>
@@ -726,6 +879,16 @@ const Admin = () => {
                 Manage Players
               </Button>
             </Link>
+
+            <Button 
+              variant="outline" 
+              className="w-full"
+              onClick={() => updateFixtureTeamsMutation.mutate()}
+              disabled={updateFixtureTeamsMutation.isPending}
+            >
+              <i className="fas fa-shield-alt mr-2"></i>
+              {updateFixtureTeamsMutation.isPending ? "Updating..." : "Update Team Names"}
+            </Button>
 
             <Link href="/predictions-overview">
               <Button variant="outline" className="w-full">

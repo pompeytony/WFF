@@ -633,6 +633,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update existing fixture team names to match Premier League reference
+  app.post("/api/admin/update-fixture-teams", requireAdmin, async (req, res) => {
+    try {
+      const { updateExistingFixtureTeams } = await import('./updateFixtureTeams');
+      const result = await updateExistingFixtureTeams();
+      
+      if (result.success) {
+        res.json({ 
+          message: `Successfully updated ${result.updatedCount} fixtures`,
+          updatedCount: result.updatedCount
+        });
+      } else {
+        res.status(500).json({ error: result.error });
+      }
+    } catch (error) {
+      console.error("Error updating fixture teams:", error);
+      res.status(500).json({ error: "Failed to update fixture teams" });
+    }
+  });
+
   // Calculate scores for a gameweek
   app.post("/api/calculate-scores/:gameweekId", async (req, res) => {
     try {

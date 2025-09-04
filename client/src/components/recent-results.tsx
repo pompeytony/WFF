@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import type { Fixture } from "@shared/schema";
 import { Link } from "wouter";
+import TeamDisplay from "@/components/team-display";
 
 interface RecentResultsProps {
   results: Fixture[];
@@ -37,12 +38,16 @@ const RecentResults = ({ results, playerId }: RecentResultsProps) => {
             return (
               <div key={result.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center space-x-3">
-                  <div className="text-sm">
-                    <div className="font-semibold text-football-navy">
-                      {result.homeTeam} {result.homeScore}-{result.awayScore} {result.awayTeam}
+                  <div className="text-sm flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <TeamDisplay teamName={result.homeTeam} size="small" />
+                      <div className="font-bold text-football-navy mx-2">
+                        {result.homeScore}-{result.awayScore}
+                      </div>
+                      <TeamDisplay teamName={result.awayTeam} size="small" />
                     </div>
                     {prediction && (
-                      <div className="text-gray-500">
+                      <div className="text-gray-500 text-center mt-1">
                         Your prediction: {prediction.homeScore}-{prediction.awayScore}
                       </div>
                     )}
