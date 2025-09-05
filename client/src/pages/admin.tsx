@@ -150,19 +150,27 @@ const Admin = () => {
 
   const sendRemindersMutation = useMutation({
     mutationFn: async ({ gameweekId, playerIds }: { gameweekId: number; playerIds?: number[] }) => {
-      return apiRequest("POST", "/api/admin/send-reminders", {
+      const response = await apiRequest("POST", "/api/admin/send-reminders", {
         gameweekId,
         type: "prediction",
         playerIds
       });
+      return await response.json();
     },
     onSuccess: (data: any) => {
       console.log("Reminder API response:", data); // Debug log
-      setReminderResult(data);
+      console.log("Response type:", typeof data);
+      console.log("Response keys:", Object.keys(data || {}));
+      
+      // Handle potential response format issues
+      const responseData = data?.data || data;
+      console.log("Processed response:", responseData);
+      
+      setReminderResult(responseData);
       setShowReminderDialog(true);
       toast({
         title: "Reminders prepared!",
-        description: `Templates ready for ${data.playersContacted} players`,
+        description: `Templates ready for ${responseData?.playersContacted || 0} players`,
       });
     },
     onError: (error: any) => {
