@@ -678,10 +678,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fixtures = await storage.getFixturesByGameweek(gameweekId);
       const players = await storage.getPlayers();
       
+      // Get existing predictions for this gameweek
+      const existingPredictions = await storage.getPredictionsByGameweek(gameweekId);
+      const playersWithPredictions = new Set(existingPredictions.map(p => p.playerId));
+      
+      // Filter out players who have already submitted predictions
+      const playersNeedingReminders = players.filter(p => !playersWithPredictions.has(p.id));
+      
       // Get players who need reminders
       const targetPlayers = playerIds ? 
-        players.filter(p => playerIds.includes(p.id)) : 
-        players;
+        playersNeedingReminders.filter(p => playerIds.includes(p.id)) : 
+        playersNeedingReminders;
+
+      // If no players need reminders, return early
+      if (targetPlayers.length === 0) {
+        return res.json({
+          success: true,
+          message: "All players have already submitted their predictions!",
+          playersContacted: 0,
+          emailTemplate: "No reminders needed - all predictions submitted!",
+          whatsappMessage: "Great news! Everyone has already submitted their predictions for this gameweek 🎉",
+          playerEmails: [],
+          playerNames: [],
+          alternatives: []
+        });
+      }
 
       // Create email content
       const deadlineText = gameweek.deadline ? 

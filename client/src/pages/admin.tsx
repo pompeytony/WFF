@@ -158,20 +158,20 @@ const Admin = () => {
       return await response.json();
     },
     onSuccess: (data: any) => {
-      console.log("Reminder API response:", data); // Debug log
-      console.log("Response type:", typeof data);
-      console.log("Response keys:", Object.keys(data || {}));
-      
-      // Handle potential response format issues
-      const responseData = data?.data || data;
-      console.log("Processed response:", responseData);
-      
-      setReminderResult(responseData);
+      setReminderResult(data);
       setShowReminderDialog(true);
-      toast({
-        title: "Reminders prepared!",
-        description: `Templates ready for ${responseData?.playersContacted || 0} players`,
-      });
+      
+      if (data.playersContacted === 0) {
+        toast({
+          title: "All predictions submitted!",
+          description: "No reminders needed - everyone has already submitted their predictions.",
+        });
+      } else {
+        toast({
+          title: "Reminders prepared!",
+          description: `Templates ready for ${data.playersContacted} players who need reminders`,
+        });
+      }
     },
     onError: (error: any) => {
       toast({
@@ -955,9 +955,6 @@ const Admin = () => {
         <CardContent className="space-y-4">
           <div>
             <Label>Send prediction reminders for active gameweeks</Label>
-            <div className="text-xs text-gray-500 mb-2">
-              Debug: {gameweeks?.length || 0} total gameweeks, {gameweeks?.filter((gw: any) => gw.isActive || !gw.isComplete).length || 0} eligible for reminders
-            </div>
             <div className="space-y-2 mt-2">
               {gameweeks?.filter((gw: any) => gw.isActive || !gw.isComplete).map((gameweek: any) => (
                 <div key={gameweek.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
