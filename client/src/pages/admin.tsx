@@ -144,6 +144,10 @@ const Admin = () => {
     },
   });
 
+  // Reminder result state
+  const [reminderResult, setReminderResult] = useState<any>(null);
+  const [showReminderDialog, setShowReminderDialog] = useState(false);
+
   const sendRemindersMutation = useMutation({
     mutationFn: async ({ gameweekId, playerIds }: { gameweekId: number; playerIds?: number[] }) => {
       return apiRequest("POST", "/api/admin/send-reminders", {
@@ -153,9 +157,11 @@ const Admin = () => {
       });
     },
     onSuccess: (data: any) => {
+      setReminderResult(data);
+      setShowReminderDialog(true);
       toast({
         title: "Reminders prepared!",
-        description: data.message || "Check the console for email templates ready to copy and send.",
+        description: `Templates ready for ${data.playersContacted} players`,
       });
     },
     onError: (error: any) => {
@@ -995,6 +1001,113 @@ const Admin = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Reminder Templates Dialog */}
+      <Dialog open={showReminderDialog} onOpenChange={setShowReminderDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-football-navy">
+              <i className="fas fa-bell mr-2 text-football-gold"></i>
+              Reminder Templates Ready
+            </DialogTitle>
+          </DialogHeader>
+          
+          {reminderResult && (
+            <div className="space-y-6">
+              {/* Player Info */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-2">
+                  <i className="fas fa-users mr-2"></i>
+                  Players to Contact ({reminderResult.playersContacted})
+                </h4>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  {reminderResult.playerNames?.map((name: string, idx: number) => (
+                    <div key={idx} className="flex justify-between">
+                      <span>{name}</span>
+                      <span className="text-gray-600">{reminderResult.playerEmails?.[idx]}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Email Template */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-gray-900">
+                    <i className="fas fa-envelope mr-2"></i>
+                    Email Template
+                  </h4>
+                  <Button
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText(reminderResult.emailTemplate)}
+                    className="bg-blue-500 hover:bg-blue-600"
+                  >
+                    <i className="fas fa-copy mr-1"></i>
+                    Copy Email
+                  </Button>
+                </div>
+                <textarea
+                  value={reminderResult.emailTemplate}
+                  readOnly
+                  className="w-full h-48 p-3 text-sm bg-white border rounded-lg font-mono"
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              {/* WhatsApp Template */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <h4 className="font-semibold text-gray-900">
+                    <i className="fab fa-whatsapp mr-2"></i>
+                    WhatsApp Message
+                  </h4>
+                  <Button
+                    size="sm"
+                    onClick={() => navigator.clipboard.writeText(reminderResult.whatsappMessage)}
+                    className="bg-green-500 hover:bg-green-600"
+                  >
+                    <i className="fas fa-copy mr-1"></i>
+                    Copy WhatsApp
+                  </Button>
+                </div>
+                <textarea
+                  value={reminderResult.whatsappMessage}
+                  readOnly
+                  className="w-full h-32 p-3 text-sm bg-white border rounded-lg font-mono"
+                  style={{ resize: 'vertical' }}
+                />
+              </div>
+
+              {/* Sending Options */}
+              <div className="space-y-2">
+                <h4 className="font-semibold text-gray-900">
+                  <i className="fas fa-paper-plane mr-2"></i>
+                  Sending Options
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {reminderResult.alternatives?.map((alt: any, idx: number) => (
+                    <div key={idx} className="bg-gray-50 p-3 rounded-lg">
+                      <div className="flex items-center mb-2">
+                        <div className={`w-8 h-8 ${alt.color} rounded-full flex items-center justify-center mr-3`}>
+                          <i className={`${alt.icon} text-white text-sm`}></i>
+                        </div>
+                        <span className="font-medium">{alt.method}</span>
+                      </div>
+                      <p className="text-sm text-gray-600">{alt.instruction}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={() => setShowReminderDialog(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
       {/* Recent Fixtures Status */}
       <Card className="mt-8">
