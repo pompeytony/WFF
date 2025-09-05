@@ -927,70 +927,74 @@ const Admin = () => {
           </CardContent>
         </Card>
 
-        {/* Send Reminders */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-football-navy">
-              <i className="fas fa-bell mr-2 text-football-gold"></i>
-              Send Reminders
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label>Send prediction reminders for active gameweeks</Label>
-              <div className="space-y-2 mt-2">
-                {gameweeks?.filter((gw: any) => gw.isActive || !gw.isComplete).map((gameweek: any) => (
-                  <div key={gameweek.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div>
-                      <span className="font-medium">{gameweek.name}</span>
-                      <span className="ml-2 text-sm text-gray-600">({gameweek.type})</span>
-                      {gameweek.isActive && (
-                        <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Active</span>
-                      )}
-                      {gameweek.deadline && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          Deadline: {new Date(gameweek.deadline).toLocaleDateString('en-GB', {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
-                        </div>
-                      )}
-                    </div>
-                    <Button
-                      size="sm"
-                      onClick={() => sendRemindersMutation.mutate({ gameweekId: gameweek.id })}
-                      disabled={sendRemindersMutation.isPending}
-                      className="bg-football-gold hover:bg-yellow-600"
-                    >
-                      <i className="fas fa-bell mr-1"></i>
-                      {sendRemindersMutation.isPending ? "Preparing..." : "Send Reminders"}
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              {gameweeks?.filter((gw: any) => gw.isActive || !gw.isComplete).length === 0 && (
-                <p className="text-gray-500 text-center py-4">No active gameweeks available for reminders</p>
-              )}
-            </div>
-            
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold text-blue-900 mb-2">
-                <i className="fas fa-info-circle mr-2"></i>
-                How Reminders Work
-              </h4>
-              <ul className="text-sm text-blue-800 space-y-1">
-                <li>• Click "Send Reminders" to generate email templates</li>
-                <li>• Templates will appear in the browser console</li>
-                <li>• Copy the email content and send manually</li>
-                <li>• WhatsApp templates are also provided</li>
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
       </div>
+
+      {/* Send Reminders - Moved to prominent location */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-football-navy">
+            <i className="fas fa-bell mr-2 text-football-gold"></i>
+            Send Prediction Reminders
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label>Send prediction reminders for active gameweeks</Label>
+            <div className="text-xs text-gray-500 mb-2">
+              Debug: {gameweeks?.length || 0} total gameweeks, {gameweeks?.filter((gw: any) => gw.isActive || !gw.isComplete).length || 0} eligible for reminders
+            </div>
+            <div className="space-y-2 mt-2">
+              {gameweeks?.filter((gw: any) => gw.isActive || !gw.isComplete).map((gameweek: any) => (
+                <div key={gameweek.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <span className="font-medium">{gameweek.name}</span>
+                    <span className="ml-2 text-sm text-gray-600">({gameweek.type})</span>
+                    {gameweek.isActive && (
+                      <span className="ml-2 px-2 py-1 bg-green-100 text-green-800 text-xs rounded">Active</span>
+                    )}
+                    {gameweek.deadline && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Deadline: {new Date(gameweek.deadline).toLocaleDateString('en-GB', {
+                          weekday: 'short',
+                          day: 'numeric',
+                          month: 'short',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    size="sm"
+                    onClick={() => sendRemindersMutation.mutate({ gameweekId: gameweek.id })}
+                    disabled={sendRemindersMutation.isPending}
+                    className="bg-football-gold hover:bg-yellow-600"
+                  >
+                    <i className="fas fa-bell mr-1"></i>
+                    {sendRemindersMutation.isPending ? "Preparing..." : "Send Reminders"}
+                  </Button>
+                </div>
+              ))}
+            </div>
+            {gameweeks?.filter((gw: any) => gw.isActive || !gw.isComplete).length === 0 && (
+              <p className="text-gray-500 text-center py-4">No active gameweeks available for reminders</p>
+            )}
+          </div>
+          
+          <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+            <h4 className="font-semibold text-blue-900 mb-2">
+              <i className="fas fa-info-circle mr-2"></i>
+              How Reminders Work
+            </h4>
+            <ul className="text-sm text-blue-800 space-y-1">
+              <li>• Click "Send Reminders" to generate email templates</li>
+              <li>• Templates will appear in the browser console</li>
+              <li>• Copy the email content and send manually</li>
+              <li>• WhatsApp templates are also provided</li>
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Recent Fixtures Status */}
       <Card className="mt-8">
