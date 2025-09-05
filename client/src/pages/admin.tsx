@@ -157,6 +157,7 @@ const Admin = () => {
       });
     },
     onSuccess: (data: any) => {
+      console.log("Reminder API response:", data); // Debug log
       setReminderResult(data);
       setShowReminderDialog(true);
       toast({
@@ -1035,11 +1036,11 @@ const Admin = () => {
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-gray-900">
                     <i className="fas fa-envelope mr-2"></i>
-                    Email Template
+                    Email Template {reminderResult.emailTemplate ? `(${reminderResult.emailTemplate.length} chars)` : '(empty)'}
                   </h4>
                   <Button
                     size="sm"
-                    onClick={() => navigator.clipboard.writeText(reminderResult.emailTemplate)}
+                    onClick={() => navigator.clipboard.writeText(reminderResult.emailTemplate || '')}
                     className="bg-blue-500 hover:bg-blue-600"
                   >
                     <i className="fas fa-copy mr-1"></i>
@@ -1047,7 +1048,7 @@ const Admin = () => {
                   </Button>
                 </div>
                 <textarea
-                  value={reminderResult.emailTemplate}
+                  value={reminderResult.emailTemplate || 'No email template available'}
                   readOnly
                   className="w-full h-48 p-3 text-sm bg-white border rounded-lg font-mono"
                   style={{ resize: 'vertical' }}
@@ -1059,11 +1060,11 @@ const Admin = () => {
                 <div className="flex items-center justify-between">
                   <h4 className="font-semibold text-gray-900">
                     <i className="fab fa-whatsapp mr-2"></i>
-                    WhatsApp Message
+                    WhatsApp Message {reminderResult.whatsappMessage ? `(${reminderResult.whatsappMessage.length} chars)` : '(empty)'}
                   </h4>
                   <Button
                     size="sm"
-                    onClick={() => navigator.clipboard.writeText(reminderResult.whatsappMessage)}
+                    onClick={() => navigator.clipboard.writeText(reminderResult.whatsappMessage || '')}
                     className="bg-green-500 hover:bg-green-600"
                   >
                     <i className="fas fa-copy mr-1"></i>
@@ -1071,7 +1072,7 @@ const Admin = () => {
                   </Button>
                 </div>
                 <textarea
-                  value={reminderResult.whatsappMessage}
+                  value={reminderResult.whatsappMessage || 'No WhatsApp message available'}
                   readOnly
                   className="w-full h-32 p-3 text-sm bg-white border rounded-lg font-mono"
                   style={{ resize: 'vertical' }}
