@@ -167,6 +167,22 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     badgePath: '@assets/generated_images/Wolves_FC_badge_05aea6d1.png',
     primaryColor: '#FDB914',
     secondaryColor: '#231F20'
+  },
+  {
+    id: 'sunderland',
+    name: 'Sunderland',
+    shortName: 'SUN',
+    badgePath: '/badges/Sunderland_AFC_badge_a1b2c3d4.svg',
+    primaryColor: '#DC143C',
+    secondaryColor: '#FFFFFF'
+  },
+  {
+    id: 'leeds-united',
+    name: 'Leeds United',
+    shortName: 'LEE',
+    badgePath: '/badges/Leeds_United_badge_e5f6g7h8.svg',
+    primaryColor: '#1D428A',
+    secondaryColor: '#FFCD00'
   }
 ];
 
@@ -208,7 +224,12 @@ export function getPremierLeagueTeamByName(teamName: string): PremierLeagueTeam 
     'arsenal': 'arsenal',
     'chelsea': 'chelsea',
     'liverpool': 'liverpool',
-    'aston villa': 'aston-villa'
+    'aston villa': 'aston-villa',
+    'sunderland': 'sunderland',
+    'sunderland afc': 'sunderland',
+    'leeds': 'leeds-united',
+    'leeds united': 'leeds-united',
+    'leeds utd': 'leeds-united'
   };
   
   const variationId = variations[normalizedName];
