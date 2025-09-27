@@ -394,12 +394,12 @@ const Admin = () => {
               <DialogTrigger asChild>
                 <Button className="w-full bg-football-green hover:bg-green-600">
                   <i className="fas fa-edit mr-2"></i>
-                  Update Results
+                  Enter New Results
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Update Match Result</DialogTitle>
+                  <DialogTitle>Enter New Match Result</DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleUpdateResult} className="space-y-4">
                   <div>
@@ -407,9 +407,11 @@ const Admin = () => {
                     <Select onValueChange={(value) => {
                       const fixture = incompleteFixtures.find((f: any) => f.id === parseInt(value));
                       setSelectedFixture(fixture || null);
+                      setHomeScore("");
+                      setAwayScore("");
                     }}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Choose a fixture to update" />
+                        <SelectValue placeholder="Choose a fixture to add result" />
                       </SelectTrigger>
                       <SelectContent>
                         {incompleteFixtures.map((fixture: any) => (
@@ -461,7 +463,96 @@ const Admin = () => {
                     className="w-full bg-football-green hover:bg-green-600"
                     disabled={updateResultMutation.isPending || !selectedFixture}
                   >
-                    {updateResultMutation.isPending ? "Updating..." : "Update Result"}
+                    {updateResultMutation.isPending ? "Adding..." : "Add Result"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+
+            {/* NEW: Edit Existing Results */}
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button className="w-full bg-football-red hover:bg-red-600" data-testid="button-edit-results">
+                  <i className="fas fa-edit mr-2"></i>
+                  Edit Existing Results
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Edit Existing Result</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleUpdateResult} className="space-y-4">
+                  <div>
+                    <Label htmlFor="edit-fixture-select">Select Completed Fixture</Label>
+                    <Select onValueChange={(value) => {
+                      const fixture = fixtures.find((f: any) => f.id === parseInt(value));
+                      setSelectedFixture(fixture || null);
+                      if (fixture) {
+                        setHomeScore(fixture.homeScore?.toString() || "");
+                        setAwayScore(fixture.awayScore?.toString() || "");
+                      }
+                    }}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Choose a completed fixture to edit" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {fixtures?.filter((f: any) => f.isComplete).map((fixture: any) => (
+                          <SelectItem key={fixture.id} value={fixture.id.toString()}>
+                            {fixture.homeTeam} vs {fixture.awayTeam} ({fixture.homeScore}-{fixture.awayScore})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {selectedFixture && (
+                    <div className="border rounded-lg p-4 bg-red-50">
+                      <div className="text-center mb-4">
+                        <h3 className="font-semibold">{selectedFixture.homeTeam} vs {selectedFixture.awayTeam}</h3>
+                        <p className="text-sm text-red-600 mt-1">
+                          <i className="fas fa-exclamation-triangle mr-1"></i>
+                          Editing will recalculate all points automatically
+                        </p>
+                      </div>
+                      <div className="flex items-center justify-center space-x-4">
+                        <div>
+                          <Label htmlFor="edit-home-score">{selectedFixture.homeTeam}</Label>
+                          <Input
+                            id="edit-home-score"
+                            type="number"
+                            min="0"
+                            max="20"
+                            value={homeScore}
+                            onChange={(e) => setHomeScore(e.target.value)}
+                            className="w-20 text-center"
+                            data-testid="input-home-score"
+                          />
+                        </div>
+                        <span className="text-2xl font-bold text-gray-400">-</span>
+                        <div>
+                          <Label htmlFor="edit-away-score">{selectedFixture.awayTeam}</Label>
+                          <Input
+                            id="edit-away-score"
+                            type="number"
+                            min="0"
+                            max="20"
+                            value={awayScore}
+                            onChange={(e) => setAwayScore(e.target.value)}
+                            className="w-20 text-center"
+                            data-testid="input-away-score"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-football-red hover:bg-red-600"
+                    disabled={updateResultMutation.isPending || !selectedFixture}
+                    data-testid="button-save-edit"
+                  >
+                    {updateResultMutation.isPending ? "Saving..." : "Save Changes"}
                   </Button>
                 </form>
               </DialogContent>
