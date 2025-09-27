@@ -91,6 +91,7 @@ const Admin = () => {
         description: "Points have been calculated automatically.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/weekly-scores"] });
       setSelectedFixture(null);
       setHomeScore("");
       setAwayScore("");
