@@ -36,6 +36,7 @@
   
   /* Keep old variables for compatibility but update colors */
   --football-green: hsl(0, 84%, 60%); /* Now red accent */
+  --football-red: hsl(0, 84%, 60%); /* Red for important actions */
   --football-navy: hsl(225, 73%, 45%); /* Now royal blue dark */
   --football-gold: hsl(225, 73%, 70%); /* Now royal blue light */
   --football-gray: hsl(220, 9%, 46%); /* Now gray medium */
