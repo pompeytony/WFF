@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
 import type { Gameweek } from "@shared/schema";
 
 interface LiveScore {
@@ -28,6 +30,8 @@ interface CumulativeScore {
 }
 
 const LeagueTable = () => {
+  const { toast } = useToast();
+  
   const { data: gameweeks, isLoading: gameweeksLoading } = useQuery<Gameweek[]>({
     queryKey: ["/api/gameweeks"],
   });
@@ -67,6 +71,64 @@ const LeagueTable = () => {
 
   const isLoading = gameweeksLoading || liveLoading || cumulativeLoading || finalWeeklyLoading;
 
+  // Generate WhatsApp-friendly text table
+  const generateWhatsAppTable = (
+    title: string,
+    data: (LiveScore | CumulativeScore)[] | undefined,
+    isLive: boolean = false
+  ): string => {
+    if (!data || data.length === 0) return "";
+
+    const header = `🏆 ${title.toUpperCase()} 🏆\n\n`;
+    
+    const rows = data.map((entry, index) => {
+      const position = index + 1;
+      const medal = position === 1 ? "🥇" : position === 2 ? "🥈" : position === 3 ? "🥉" : `${position}.`;
+      const name = entry.player.name;
+      const points = `${entry.totalPoints || 0} pts`;
+      const mow = ('isManagerOfWeek' in entry && entry.isManagerOfWeek) ? " ⭐ MOW" : "";
+      
+      // Pad the name to align points
+      const namePadded = name.padEnd(20, ' ');
+      return `${medal} ${namePadded} ${points}${mow}`;
+    }).join('\n');
+
+    const footer = isLive ? "\n\n⚡ Live - Updates as results come in" : "";
+    
+    return header + rows + footer;
+  };
+
+  // Copy table to clipboard
+  const copyTableToClipboard = (
+    title: string,
+    data: (LiveScore | CumulativeScore)[] | undefined,
+    isLive: boolean = false
+  ) => {
+    const textTable = generateWhatsAppTable(title, data, isLive);
+    
+    if (!textTable) {
+      toast({
+        title: "Nothing to copy",
+        description: "No data available in this table",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    navigator.clipboard.writeText(textTable).then(() => {
+      toast({
+        title: "Copied to clipboard!",
+        description: "Table ready to paste in WhatsApp",
+      });
+    }).catch(() => {
+      toast({
+        title: "Copy failed",
+        description: "Please try again",
+        variant: "destructive",
+      });
+    });
+  };
+
   const renderTable = (
     title: string,
     data: (LiveScore | CumulativeScore)[] | undefined,
@@ -75,19 +137,35 @@ const LeagueTable = () => {
   ) => (
     <Card className="mb-8">
       <CardHeader>
-        <CardTitle className="text-2xl font-bold text-football-navy">
-          <i className={`fas ${isLive ? 'fa-bolt' : 'fa-trophy'} mr-2 ${isLive ? 'text-football-green' : 'text-football-gold'}`}></i>
-          {title}
-          {isLive && (
-            <Badge variant="outline" className="ml-2 text-football-green border-football-green">
-              <i className="fas fa-circle text-green-500 mr-1 animate-pulse"></i>
-              LIVE
-            </Badge>
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <CardTitle className="text-2xl font-bold text-football-navy">
+              <i className={`fas ${isLive ? 'fa-bolt' : 'fa-trophy'} mr-2 ${isLive ? 'text-football-green' : 'text-football-gold'}`}></i>
+              {title}
+              {isLive && (
+                <Badge variant="outline" className="ml-2 text-football-green border-football-green">
+                  <i className="fas fa-circle text-green-500 mr-1 animate-pulse"></i>
+                  LIVE
+                </Badge>
+              )}
+            </CardTitle>
+            {subtitle && (
+              <p className="text-gray-600 mt-2">{subtitle}</p>
+            )}
+          </div>
+          {data && data.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => copyTableToClipboard(title, data, isLive)}
+              className="ml-4"
+              data-testid={`button-copy-${title.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <i className="fas fa-copy mr-2"></i>
+              Copy for WhatsApp
+            </Button>
           )}
-        </CardTitle>
-        {subtitle && (
-          <p className="text-gray-600">{subtitle}</p>
-        )}
+        </div>
       </CardHeader>
       <CardContent>
         {!data || data.length === 0 ? (
