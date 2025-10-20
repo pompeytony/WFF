@@ -159,6 +159,12 @@ export const updateFixtureResultSchema = z.object({
   awayScore: z.number().min(0),
 });
 
+export const updatePredictionSchema = z.object({
+  homeScore: z.number().min(0).optional(),
+  awayScore: z.number().min(0).optional(),
+  isJoker: z.boolean().optional(),
+});
+
 
 
 export type UpsertUser = typeof users.$inferInsert;
@@ -174,3 +180,4 @@ export type InsertPrediction = z.infer<typeof insertPredictionSchema>;
 export type WeeklyScore = typeof weeklyScores.$inferSelect;
 export type InsertWeeklyScore = z.infer<typeof insertWeeklyScoreSchema>;
 export type UpdateFixtureResult = z.infer<typeof updateFixtureResultSchema>;
+export type UpdatePrediction = z.infer<typeof updatePredictionSchema>;

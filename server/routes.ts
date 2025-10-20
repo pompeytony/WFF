@@ -8,7 +8,8 @@ import {
   insertGameweekSchema, 
   insertFixtureSchema, 
   insertPredictionSchema,
-  updateFixtureResultSchema
+  updateFixtureResultSchema,
+  updatePredictionSchema
 } from "@shared/schema";
 
 // Simple in-memory auth store
@@ -409,6 +410,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json(createdPredictions);
     } catch (error) {
+      res.status(400).json({ error: "Invalid prediction data" });
+    }
+  });
+
+  // Admin-only: Update existing prediction
+  app.patch("/api/predictions/:id", requireAdmin, async (req, res) => {
+    try {
+      const predictionId = Number(req.params.id);
+      const updateData = updatePredictionSchema.parse(req.body);
+      
+      await storage.updatePrediction(predictionId, updateData);
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating prediction:", error);
       res.status(400).json({ error: "Invalid prediction data" });
     }
   });
