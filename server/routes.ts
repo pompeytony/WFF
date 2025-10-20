@@ -404,12 +404,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
           parsedData.fixtureId
         );
         
+        let predictionId: number;
         if (existing) {
           await storage.updatePrediction(existing.id, parsedData);
           createdPredictions.push({ ...existing, ...parsedData });
+          predictionId = existing.id;
         } else {
           const prediction = await storage.createPrediction(parsedData);
           createdPredictions.push(prediction);
+          predictionId = prediction.id;
+        }
+        
+        // If fixture is already complete, calculate points for this prediction
+        const fixture = (await storage.getFixtures()).find(f => f.id === parsedData.fixtureId);
+        if (fixture?.isComplete) {
+          let points = 0;
+          
+          // Check for correct score (5 points)
+          if (parsedData.homeScore === fixture.homeScore && parsedData.awayScore === fixture.awayScore) {
+            points = 5;
+          }
+          // Check for correct result (3 points)
+          else {
+            const predictedResult = parsedData.homeScore > parsedData.awayScore ? 'home' : 
+                                   parsedData.homeScore < parsedData.awayScore ? 'away' : 'draw';
+            const actualResult = fixture.homeScore! > fixture.awayScore! ? 'home' :
+                                fixture.homeScore! < fixture.awayScore! ? 'away' : 'draw';
+            
+            if (predictedResult === actualResult) {
+              points = 3;
+            }
+          }
+          
+          // Double points if joker was played
+          if (parsedData.isJoker) {
+            points *= 2;
+          }
+          
+          await storage.updatePredictionPoints(predictionId, points);
+          console.log(`Calculated ${points} points for late prediction on completed fixture ${fixture.id}`);
         }
       }
       
@@ -425,20 +458,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const predictionId = Number(req.params.id);
       const updateData = updatePredictionSchema.parse(req.body);
       
+      // Get the current prediction to access fixture info
+      const prediction = (await storage.getPredictions()).find(p => p.id === predictionId);
+      if (!prediction) {
+        return res.status(404).json({ error: "Prediction not found" });
+      }
+      
+      // Get the fixture to find the gameweek
+      const fixtures = await storage.getFixtures();
+      const fixture = fixtures.find(f => f.id === prediction.fixtureId);
+      if (!fixture) {
+        return res.status(404).json({ error: "Fixture not found" });
+      }
+      
       // If setting joker to true, enforce single-joker constraint
       if (updateData.isJoker === true) {
-        const prediction = (await storage.getPredictions()).find(p => p.id === predictionId);
-        if (!prediction) {
-          return res.status(404).json({ error: "Prediction not found" });
-        }
-        
-        // Get the fixture to find the gameweek
-        const fixtures = await storage.getFixtures();
-        const fixture = fixtures.find(f => f.id === prediction.fixtureId);
-        if (!fixture) {
-          return res.status(404).json({ error: "Fixture not found" });
-        }
-        
         // Get all predictions for this player in this gameweek
         const gameweekPredictions = await storage.getPredictionsByGameweek(fixture.gameweekId);
         const playerGameweekPredictions = gameweekPredictions.filter(p => p.playerId === prediction.playerId);
@@ -452,6 +486,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       await storage.updatePrediction(predictionId, updateData);
+      
+      // If fixture is complete, recalculate points for this prediction
+      if (fixture.isComplete) {
+        // Merge updated data with existing prediction data
+        const updatedPrediction = {
+          homeScore: updateData.homeScore ?? prediction.homeScore,
+          awayScore: updateData.awayScore ?? prediction.awayScore,
+          isJoker: updateData.isJoker ?? prediction.isJoker
+        };
+        
+        let points = 0;
+        
+        // Check for correct score (5 points)
+        if (updatedPrediction.homeScore === fixture.homeScore && updatedPrediction.awayScore === fixture.awayScore) {
+          points = 5;
+        }
+        // Check for correct result (3 points)
+        else {
+          const predictedResult = updatedPrediction.homeScore > updatedPrediction.awayScore ? 'home' : 
+                                 updatedPrediction.homeScore < updatedPrediction.awayScore ? 'away' : 'draw';
+          const actualResult = fixture.homeScore! > fixture.awayScore! ? 'home' :
+                              fixture.homeScore! < fixture.awayScore! ? 'away' : 'draw';
+          
+          if (predictedResult === actualResult) {
+            points = 3;
+          }
+        }
+        
+        // Double points if joker was played
+        if (updatedPrediction.isJoker) {
+          points *= 2;
+        }
+        
+        await storage.updatePredictionPoints(predictionId, points);
+        console.log(`Recalculated ${points} points for edited prediction on completed fixture ${fixture.id}`);
+      }
       
       res.json({ success: true });
     } catch (error) {
