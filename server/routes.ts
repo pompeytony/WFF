@@ -781,6 +781,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Admin-only: Recalculate points for all predictions in a gameweek
+  app.post("/api/admin/recalculate-points/:gameweekId", requireAdmin, async (req, res) => {
+    try {
+      const gameweekId = Number(req.params.gameweekId);
+      const fixtures = await storage.getFixturesByGameweek(gameweekId);
+      
+      let recalculatedCount = 0;
+      
+      for (const fixture of fixtures) {
+        if (fixture.isComplete) {
+          await calculatePredictionPoints(fixture.id);
+          recalculatedCount++;
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        message: `Recalculated points for ${recalculatedCount} completed fixtures in gameweek ${gameweekId}` 
+      });
+    } catch (error) {
+      console.error("Error recalculating points:", error);
+      res.status(500).json({ error: "Failed to recalculate points" });
+    }
+  });
+
   // Send reminders to players
   app.post("/api/admin/send-reminders", requireAdmin, async (req, res) => {
     try {
