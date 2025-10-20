@@ -77,6 +77,8 @@ const Admin = () => {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
   const [editingPrediction, setEditingPrediction] = useState<any>(null);
   const [isEditPredictionOpen, setIsEditPredictionOpen] = useState(false);
+  const [addingPrediction, setAddingPrediction] = useState<any>(null);
+  const [isAddPredictionOpen, setIsAddPredictionOpen] = useState(false);
 
   const { data: fixtures = [] } = useQuery<Fixture[]>({
     queryKey: ["/api/fixtures"],
@@ -311,6 +313,28 @@ const Admin = () => {
     onError: (error: any) => {
       toast({
         title: "Error updating prediction",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const createPredictionMutation = useMutation({
+    mutationFn: async (newPrediction: any) => {
+      return apiRequest("POST", "/api/predictions", newPrediction);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Prediction added successfully!",
+        description: "The missing prediction has been added.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/predictions", selectedPlayerId, activeGameweek?.id] });
+      setIsAddPredictionOpen(false);
+      setAddingPrediction(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error adding prediction",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -1294,50 +1318,112 @@ const Admin = () => {
                 </Select>
               </div>
 
-              {selectedPlayerId && (
-                <div>
-                  <Label>Predictions for {players.find((p: any) => p.id.toString() === selectedPlayerId)?.name}</Label>
-                  {playerPredictions.length === 0 ? (
-                    <p className="text-gray-500 text-sm mt-2 p-4 bg-gray-50 rounded">
-                      No predictions found for this player in the active gameweek
-                    </p>
-                  ) : (
-                    <div className="space-y-2 mt-2">
-                      {playerPredictions.map((pred: any) => {
-                        const fixture = fixtures.find((f: any) => f.id === pred.fixtureId);
-                        if (!fixture) return null;
-                        
-                        return (
-                          <div 
-                            key={pred.id} 
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
-                          >
-                            <div className="flex-1">
-                              <div className="font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</div>
-                              <div className="text-sm text-gray-600">
-                                Prediction: {pred.homeScore}-{pred.awayScore}
-                                {pred.isJoker && <span className="ml-2 text-football-gold">⭐ Joker</span>}
+              {selectedPlayerId && (() => {
+                // Calculate missing predictions
+                const gameweekFixtures = fixtures.filter((f: any) => f.gameweekId === activeGameweek.id);
+                const predictedFixtureIds = new Set(playerPredictions.map((p: any) => p.fixtureId));
+                const missingFixtures = gameweekFixtures.filter((f: any) => !predictedFixtureIds.has(f.id));
+
+                return (
+                  <div className="space-y-4">
+                    {/* Existing Predictions */}
+                    <div>
+                      <Label className="text-green-700">
+                        <i className="fas fa-check-circle mr-1"></i>
+                        Existing Predictions ({playerPredictions.length})
+                      </Label>
+                      {playerPredictions.length === 0 ? (
+                        <p className="text-gray-500 text-sm mt-2 p-4 bg-gray-50 rounded">
+                          No predictions found for this player
+                        </p>
+                      ) : (
+                        <div className="space-y-2 mt-2">
+                          {playerPredictions.map((pred: any) => {
+                            const fixture = fixtures.find((f: any) => f.id === pred.fixtureId);
+                            if (!fixture) return null;
+                            
+                            return (
+                              <div 
+                                key={pred.id} 
+                                className="flex items-center justify-between p-3 bg-green-50 rounded-lg hover:bg-green-100 border border-green-200"
+                              >
+                                <div className="flex-1">
+                                  <div className="font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</div>
+                                  <div className="text-sm text-gray-600">
+                                    Prediction: {pred.homeScore}-{pred.awayScore}
+                                    {pred.isJoker && <span className="ml-2 text-football-gold">⭐ Joker</span>}
+                                  </div>
+                                </div>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setEditingPrediction({ ...pred, fixture });
+                                    setIsEditPredictionOpen(true);
+                                  }}
+                                  data-testid={`button-edit-prediction-${pred.id}`}
+                                >
+                                  <i className="fas fa-edit mr-1"></i>
+                                  Edit
+                                </Button>
                               </div>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => {
-                                setEditingPrediction({ ...pred, fixture });
-                                setIsEditPredictionOpen(true);
-                              }}
-                              data-testid={`button-edit-prediction-${pred.id}`}
-                            >
-                              <i className="fas fa-edit mr-1"></i>
-                              Edit
-                            </Button>
-                          </div>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )}
+
+                    {/* Missing Predictions */}
+                    {missingFixtures.length > 0 && (
+                      <div>
+                        <Label className="text-orange-700">
+                          <i className="fas fa-exclamation-triangle mr-1"></i>
+                          Missing Predictions ({missingFixtures.length})
+                        </Label>
+                        <div className="space-y-2 mt-2">
+                          {missingFixtures.map((fixture: any) => (
+                            <div 
+                              key={fixture.id} 
+                              className="flex items-center justify-between p-3 bg-orange-50 rounded-lg hover:bg-orange-100 border border-orange-200"
+                            >
+                              <div className="flex-1">
+                                <div className="font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</div>
+                                <div className="text-sm text-gray-600">
+                                  {new Date(fixture.kickoffTime).toLocaleDateString('en-GB', {
+                                    weekday: 'short',
+                                    day: 'numeric',
+                                    month: 'short',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                  })}
+                                </div>
+                              </div>
+                              <Button
+                                size="sm"
+                                variant="default"
+                                className="bg-football-gold hover:bg-yellow-600"
+                                onClick={() => {
+                                  setAddingPrediction({ 
+                                    fixture,
+                                    homeScore: "0",
+                                    awayScore: "0",
+                                    isJoker: false
+                                  });
+                                  setIsAddPredictionOpen(true);
+                                }}
+                                data-testid={`button-add-prediction-${fixture.id}`}
+                              >
+                                <i className="fas fa-plus mr-1"></i>
+                                Add
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
             </>
           )}
         </CardContent>
@@ -1435,6 +1521,105 @@ const Admin = () => {
                 data-testid="button-save-prediction-edit"
               >
                 {updatePredictionMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Prediction Dialog */}
+      <Dialog open={isAddPredictionOpen} onOpenChange={setIsAddPredictionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Missing Prediction</DialogTitle>
+          </DialogHeader>
+          {addingPrediction && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              createPredictionMutation.mutate({
+                playerId: parseInt(selectedPlayerId),
+                fixtureId: addingPrediction.fixture.id,
+                homeScore: parseInt(addingPrediction.homeScore),
+                awayScore: parseInt(addingPrediction.awayScore),
+                isJoker: addingPrediction.isJoker
+              });
+            }} className="space-y-4">
+              <div className="text-center mb-4">
+                <h3 className="font-semibold">
+                  {addingPrediction.fixture.homeTeam} vs {addingPrediction.fixture.awayTeam}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Player: {players.find((p: any) => p.id.toString() === selectedPlayerId)?.name}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center space-x-4">
+                <div>
+                  <Label htmlFor="add-pred-home">{addingPrediction.fixture.homeTeam}</Label>
+                  <Input
+                    id="add-pred-home"
+                    type="number"
+                    min="0"
+                    max="20"
+                    value={addingPrediction.homeScore}
+                    onChange={(e) => setAddingPrediction({
+                      ...addingPrediction,
+                      homeScore: e.target.value
+                    })}
+                    className="w-20 text-center"
+                    data-testid="input-add-pred-home"
+                    required
+                  />
+                </div>
+                <span className="text-2xl font-bold text-gray-400">-</span>
+                <div>
+                  <Label htmlFor="add-pred-away">{addingPrediction.fixture.awayTeam}</Label>
+                  <Input
+                    id="add-pred-away"
+                    type="number"
+                    min="0"
+                    max="20"
+                    value={addingPrediction.awayScore}
+                    onChange={(e) => setAddingPrediction({
+                      ...addingPrediction,
+                      awayScore: e.target.value
+                    })}
+                    className="w-20 text-center"
+                    data-testid="input-add-pred-away"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 justify-center p-3 bg-yellow-50 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="add-pred-joker"
+                  checked={addingPrediction.isJoker}
+                  onChange={(e) => setAddingPrediction({
+                    ...addingPrediction,
+                    isJoker: e.target.checked
+                  })}
+                  className="w-4 h-4"
+                  data-testid="checkbox-add-pred-joker"
+                />
+                <Label htmlFor="add-pred-joker" className="cursor-pointer">
+                  ⭐ This is my joker (double points)
+                </Label>
+              </div>
+
+              <div className="bg-orange-50 p-3 rounded text-sm text-orange-800">
+                <i className="fas fa-exclamation-triangle mr-2"></i>
+                Note: Only one joker per player per gameweek. Checking this will remove joker from other predictions.
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-football-gold hover:bg-yellow-600"
+                disabled={createPredictionMutation.isPending}
+                data-testid="button-save-prediction-add"
+              >
+                {createPredictionMutation.isPending ? "Adding..." : "Add Prediction"}
               </Button>
             </form>
           )}
