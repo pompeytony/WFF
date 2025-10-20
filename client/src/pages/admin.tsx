@@ -73,12 +73,35 @@ const Admin = () => {
     deadline: ""
   });
 
+  // Edit predictions state
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string>("");
+  const [editingPrediction, setEditingPrediction] = useState<any>(null);
+  const [isEditPredictionOpen, setIsEditPredictionOpen] = useState(false);
+
   const { data: fixtures = [] } = useQuery<Fixture[]>({
     queryKey: ["/api/fixtures"],
   });
 
   const { data: gameweeks = [] } = useQuery<Gameweek[]>({
     queryKey: ["/api/gameweeks"],
+  });
+
+  const { data: players = [] } = useQuery<any[]>({
+    queryKey: ["/api/players"],
+  });
+
+  // Get active gameweek for prediction editing
+  const activeGameweek = gameweeks.find((gw: any) => gw.isActive && !gw.isComplete);
+
+  // Fetch predictions for selected player and active gameweek
+  const { data: playerPredictions = [] } = useQuery({
+    queryKey: ["/api/predictions", selectedPlayerId, activeGameweek?.id],
+    queryFn: async () => {
+      if (!selectedPlayerId || !activeGameweek) return [];
+      const response = await fetch(`/api/predictions?playerId=${selectedPlayerId}&gameweekId=${activeGameweek.id}`);
+      return await response.json();
+    },
+    enabled: !!selectedPlayerId && !!activeGameweek,
   });
 
   const updateResultMutation = useMutation({
@@ -266,6 +289,28 @@ const Admin = () => {
     onError: (error: any) => {
       toast({
         title: "Error activating gameweek",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updatePredictionMutation = useMutation({
+    mutationFn: async ({ predictionId, updateData }: { predictionId: number; updateData: any }) => {
+      return apiRequest("PATCH", `/api/predictions/${predictionId}`, updateData);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Prediction updated successfully!",
+        description: "The player's prediction has been updated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/predictions", selectedPlayerId, activeGameweek?.id] });
+      setIsEditPredictionOpen(false);
+      setEditingPrediction(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating prediction",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -1203,6 +1248,195 @@ const Admin = () => {
                 </Button>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Player Predictions */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-football-navy">
+            <i className="fas fa-user-edit mr-2 text-football-gold"></i>
+            Edit Player Predictions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {!activeGameweek ? (
+            <div className="text-center py-8 bg-gray-50 rounded-lg">
+              <p className="text-gray-500">No active gameweek available</p>
+              <p className="text-sm text-gray-400 mt-1">Activate a gameweek to edit predictions</p>
+            </div>
+          ) : (
+            <>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-semibold text-blue-900 mb-2">
+                  <i className="fas fa-info-circle mr-2"></i>
+                  Active Gameweek: {activeGameweek.name}
+                </h4>
+                <p className="text-sm text-blue-800">
+                  Edit predictions for players who had submission issues. Changes are saved immediately.
+                </p>
+              </div>
+
+              <div>
+                <Label>Select Player</Label>
+                <Select value={selectedPlayerId} onValueChange={setSelectedPlayerId}>
+                  <SelectTrigger data-testid="select-player-for-prediction-edit">
+                    <SelectValue placeholder="Choose a player to edit predictions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {players.map((player: any) => (
+                      <SelectItem key={player.id} value={player.id.toString()}>
+                        {player.name} ({player.email})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {selectedPlayerId && (
+                <div>
+                  <Label>Predictions for {players.find((p: any) => p.id.toString() === selectedPlayerId)?.name}</Label>
+                  {playerPredictions.length === 0 ? (
+                    <p className="text-gray-500 text-sm mt-2 p-4 bg-gray-50 rounded">
+                      No predictions found for this player in the active gameweek
+                    </p>
+                  ) : (
+                    <div className="space-y-2 mt-2">
+                      {playerPredictions.map((pred: any) => {
+                        const fixture = fixtures.find((f: any) => f.id === pred.fixtureId);
+                        if (!fixture) return null;
+                        
+                        return (
+                          <div 
+                            key={pred.id} 
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100"
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</div>
+                              <div className="text-sm text-gray-600">
+                                Prediction: {pred.homeScore}-{pred.awayScore}
+                                {pred.isJoker && <span className="ml-2 text-football-gold">⭐ Joker</span>}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingPrediction({ ...pred, fixture });
+                                setIsEditPredictionOpen(true);
+                              }}
+                              data-testid={`button-edit-prediction-${pred.id}`}
+                            >
+                              <i className="fas fa-edit mr-1"></i>
+                              Edit
+                            </Button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Edit Prediction Dialog */}
+      <Dialog open={isEditPredictionOpen} onOpenChange={setIsEditPredictionOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Prediction</DialogTitle>
+          </DialogHeader>
+          {editingPrediction && (
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              updatePredictionMutation.mutate({
+                predictionId: editingPrediction.id,
+                updateData: {
+                  homeScore: parseInt(editingPrediction.homeScore),
+                  awayScore: parseInt(editingPrediction.awayScore),
+                  isJoker: editingPrediction.isJoker
+                }
+              });
+            }} className="space-y-4">
+              <div className="text-center mb-4">
+                <h3 className="font-semibold">
+                  {editingPrediction.fixture.homeTeam} vs {editingPrediction.fixture.awayTeam}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Player: {players.find((p: any) => p.id.toString() === selectedPlayerId)?.name}
+                </p>
+              </div>
+
+              <div className="flex items-center justify-center space-x-4">
+                <div>
+                  <Label htmlFor="edit-pred-home">{editingPrediction.fixture.homeTeam}</Label>
+                  <Input
+                    id="edit-pred-home"
+                    type="number"
+                    min="0"
+                    max="20"
+                    value={editingPrediction.homeScore}
+                    onChange={(e) => setEditingPrediction({
+                      ...editingPrediction,
+                      homeScore: e.target.value
+                    })}
+                    className="w-20 text-center"
+                    data-testid="input-edit-pred-home"
+                  />
+                </div>
+                <span className="text-2xl font-bold text-gray-400">-</span>
+                <div>
+                  <Label htmlFor="edit-pred-away">{editingPrediction.fixture.awayTeam}</Label>
+                  <Input
+                    id="edit-pred-away"
+                    type="number"
+                    min="0"
+                    max="20"
+                    value={editingPrediction.awayScore}
+                    onChange={(e) => setEditingPrediction({
+                      ...editingPrediction,
+                      awayScore: e.target.value
+                    })}
+                    className="w-20 text-center"
+                    data-testid="input-edit-pred-away"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-2 justify-center p-3 bg-yellow-50 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="edit-pred-joker"
+                  checked={editingPrediction.isJoker}
+                  onChange={(e) => setEditingPrediction({
+                    ...editingPrediction,
+                    isJoker: e.target.checked
+                  })}
+                  className="w-4 h-4"
+                  data-testid="checkbox-edit-pred-joker"
+                />
+                <Label htmlFor="edit-pred-joker" className="cursor-pointer">
+                  ⭐ This is my joker (double points)
+                </Label>
+              </div>
+
+              <div className="bg-orange-50 p-3 rounded text-sm text-orange-800">
+                <i className="fas fa-exclamation-triangle mr-2"></i>
+                Note: Only one joker per player per gameweek. Checking this will remove joker from other predictions.
+              </div>
+
+              <Button 
+                type="submit" 
+                className="w-full bg-football-gold hover:bg-yellow-600"
+                disabled={updatePredictionMutation.isPending}
+                data-testid="button-save-prediction-edit"
+              >
+                {updatePredictionMutation.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </form>
           )}
         </DialogContent>
       </Dialog>

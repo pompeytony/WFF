@@ -367,7 +367,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const playerId = req.query.playerId;
     const gameweekId = req.query.gameweekId;
     
-    if (playerId) {
+    if (playerId && gameweekId) {
+      // Filter by both player and gameweek
+      const predictions = await storage.getPredictionsByGameweek(Number(gameweekId));
+      const filtered = predictions.filter(p => p.playerId === Number(playerId));
+      res.json(filtered);
+    } else if (playerId) {
       const predictions = await storage.getPredictionsByPlayer(Number(playerId));
       res.json(predictions);
     } else if (gameweekId) {
@@ -419,6 +424,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const predictionId = Number(req.params.id);
       const updateData = updatePredictionSchema.parse(req.body);
+      
+      // If setting joker to true, enforce single-joker constraint
+      if (updateData.isJoker === true) {
+        const prediction = (await storage.getPredictions()).find(p => p.id === predictionId);
+        if (!prediction) {
+          return res.status(404).json({ error: "Prediction not found" });
+        }
+        
+        // Get the fixture to find the gameweek
+        const fixtures = await storage.getFixtures();
+        const fixture = fixtures.find(f => f.id === prediction.fixtureId);
+        if (!fixture) {
+          return res.status(404).json({ error: "Fixture not found" });
+        }
+        
+        // Get all predictions for this player in this gameweek
+        const gameweekPredictions = await storage.getPredictionsByGameweek(fixture.gameweekId);
+        const playerGameweekPredictions = gameweekPredictions.filter(p => p.playerId === prediction.playerId);
+        
+        // Remove joker from other predictions
+        for (const otherPred of playerGameweekPredictions) {
+          if (otherPred.id !== predictionId && otherPred.isJoker) {
+            await storage.updatePrediction(otherPred.id, { isJoker: false });
+          }
+        }
+      }
       
       await storage.updatePrediction(predictionId, updateData);
       
