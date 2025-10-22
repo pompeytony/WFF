@@ -211,6 +211,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Player Performance Statistics
+  app.get("/api/players/:id/performance", requireAuth, async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      if (isNaN(playerId)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+
+      const performance = await storage.getPlayerPerformance(playerId);
+      res.json(performance);
+    } catch (error) {
+      console.error("Error fetching player performance:", error);
+      res.status(500).json({ error: "Failed to fetch player performance" });
+    }
+  });
+
   // Gameweeks
   app.get("/api/gameweeks", async (req, res) => {
     const gameweeks = await storage.getGameweeks();

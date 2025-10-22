@@ -62,6 +62,45 @@ export interface IStorage {
   getTeamStrengthRating(teamName: string): Promise<TeamStrengthRating | undefined>;
   upsertTeamStrengthRating(rating: InsertTeamStrengthRating): Promise<TeamStrengthRating>;
   updateTeamStrengthRating(teamName: string, updates: UpdateTeamStrengthRating): Promise<void>;
+  
+  // Player Performance
+  getPlayerPerformance(playerId: number): Promise<PlayerPerformance>;
+}
+
+export interface PlayerPerformance {
+  playerId: number;
+  playerName: string;
+  totalPredictions: number;
+  completedPredictions: number;
+  correctScores: number;
+  correctResults: number;
+  totalPoints: number;
+  averagePointsPerGameweek: number;
+  accuracyRate: number;
+  scoreAccuracyRate: number;
+  bestPredictions: PredictionDetail[];
+  worstPredictions: PredictionDetail[];
+  gameweekStats: GameweekStat[];
+}
+
+export interface PredictionDetail {
+  fixtureId: number;
+  homeTeam: string;
+  awayTeam: string;
+  predictedScore: string;
+  actualScore: string;
+  points: number;
+  gameweekName: string;
+  wasJoker: boolean;
+}
+
+export interface GameweekStat {
+  gameweekId: number;
+  gameweekName: string;
+  points: number;
+  predictions: number;
+  correctScores: number;
+  correctResults: number;
 }
 
 export class MemStorage implements IStorage {
@@ -479,6 +518,10 @@ export class MemStorage implements IStorage {
   async updateTeamStrengthRating(teamName: string, updates: UpdateTeamStrengthRating): Promise<void> {
     throw new Error("MemStorage does not support team strength ratings");
   }
+
+  async getPlayerPerformance(playerId: number): Promise<PlayerPerformance> {
+    throw new Error("MemStorage does not support player performance statistics");
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -793,6 +836,166 @@ export class DatabaseStorage implements IStorage {
         updatedAt: new Date(),
       })
       .where(eq(teamStrengthRatings.teamName, teamName));
+  }
+
+  async getPlayerPerformance(playerId: number): Promise<PlayerPerformance> {
+    // Get player info
+    const player = await this.getPlayer(playerId);
+    if (!player) {
+      throw new Error("Player not found");
+    }
+
+    // Get all predictions for this player with fixture and gameweek details
+    const playerPredictions = await db
+      .select({
+        prediction: predictions,
+        fixture: fixtures,
+        gameweek: gameweeks,
+      })
+      .from(predictions)
+      .innerJoin(fixtures, eq(predictions.fixtureId, fixtures.id))
+      .innerJoin(gameweeks, eq(fixtures.gameweekId, gameweeks.id))
+      .where(eq(predictions.playerId, playerId));
+
+    // Calculate statistics
+    const completedPredictions = playerPredictions.filter(p => p.fixture.isComplete);
+    const totalPredictions = playerPredictions.length;
+    const completedCount = completedPredictions.length;
+
+    let correctScores = 0;
+    let correctResults = 0;
+    let totalPoints = 0;
+
+    completedPredictions.forEach(({ prediction, fixture }) => {
+      totalPoints += prediction.points || 0;
+      
+      if (fixture.homeScore !== null && fixture.awayScore !== null) {
+        // Check for correct score (exact match)
+        if (prediction.homeScore === fixture.homeScore && prediction.awayScore === fixture.awayScore) {
+          correctScores++;
+          correctResults++;
+        } else {
+          // Check for correct result (win/draw/loss)
+          const predictedResult = prediction.homeScore > prediction.awayScore ? 'home' : 
+                                 prediction.homeScore < prediction.awayScore ? 'away' : 'draw';
+          const actualResult = fixture.homeScore > fixture.awayScore ? 'home' :
+                              fixture.homeScore < fixture.awayScore ? 'away' : 'draw';
+          if (predictedResult === actualResult) {
+            correctResults++;
+          }
+        }
+      }
+    });
+
+    // Calculate accuracy rates
+    const accuracyRate = completedCount > 0 ? (correctResults / completedCount) * 100 : 0;
+    const scoreAccuracyRate = completedCount > 0 ? (correctScores / completedCount) * 100 : 0;
+
+    // Get weekly scores for average calculation
+    const weeklyScoresData = await db
+      .select()
+      .from(weeklyScores)
+      .where(eq(weeklyScores.playerId, playerId));
+
+    const averagePointsPerGameweek = weeklyScoresData.length > 0 
+      ? weeklyScoresData.reduce((sum, ws) => sum + (ws.totalPoints || 0), 0) / weeklyScoresData.length 
+      : 0;
+
+    // Get best predictions (top 5 by points)
+    const bestPredictions: PredictionDetail[] = completedPredictions
+      .filter(p => p.fixture.homeScore !== null && p.fixture.awayScore !== null)
+      .sort((a, b) => (b.prediction.points || 0) - (a.prediction.points || 0))
+      .slice(0, 5)
+      .map(({ prediction, fixture, gameweek }) => ({
+        fixtureId: fixture.id,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+        predictedScore: `${prediction.homeScore}-${prediction.awayScore}`,
+        actualScore: `${fixture.homeScore}-${fixture.awayScore}`,
+        points: prediction.points || 0,
+        gameweekName: gameweek.name,
+        wasJoker: prediction.isJoker || false,
+      }));
+
+    // Get worst predictions (bottom 5 by points, including 0 points)
+    const worstPredictions: PredictionDetail[] = completedPredictions
+      .filter(p => p.fixture.homeScore !== null && p.fixture.awayScore !== null)
+      .sort((a, b) => (a.prediction.points || 0) - (b.prediction.points || 0))
+      .slice(0, 5)
+      .map(({ prediction, fixture, gameweek }) => ({
+        fixtureId: fixture.id,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+        predictedScore: `${prediction.homeScore}-${prediction.awayScore}`,
+        actualScore: `${fixture.homeScore}-${fixture.awayScore}`,
+        points: prediction.points || 0,
+        gameweekName: gameweek.name,
+        wasJoker: prediction.isJoker || false,
+      }));
+
+    // Calculate gameweek statistics
+    const gameweekStatsMap = new Map<number, {
+      gameweekId: number;
+      gameweekName: string;
+      points: number;
+      predictions: number;
+      correctScores: number;
+      correctResults: number;
+    }>();
+
+    playerPredictions.forEach(({ prediction, fixture, gameweek }) => {
+      if (!gameweekStatsMap.has(gameweek.id)) {
+        gameweekStatsMap.set(gameweek.id, {
+          gameweekId: gameweek.id,
+          gameweekName: gameweek.name,
+          points: 0,
+          predictions: 0,
+          correctScores: 0,
+          correctResults: 0,
+        });
+      }
+
+      const stat = gameweekStatsMap.get(gameweek.id)!;
+      stat.predictions++;
+
+      if (fixture.isComplete && fixture.homeScore !== null && fixture.awayScore !== null) {
+        stat.points += prediction.points || 0;
+
+        // Check for correct score
+        if (prediction.homeScore === fixture.homeScore && prediction.awayScore === fixture.awayScore) {
+          stat.correctScores++;
+          stat.correctResults++;
+        } else {
+          // Check for correct result
+          const predictedResult = prediction.homeScore > prediction.awayScore ? 'home' : 
+                                 prediction.homeScore < prediction.awayScore ? 'away' : 'draw';
+          const actualResult = fixture.homeScore > fixture.awayScore ? 'home' :
+                              fixture.homeScore < fixture.awayScore ? 'away' : 'draw';
+          if (predictedResult === actualResult) {
+            stat.correctResults++;
+          }
+        }
+      }
+    });
+
+    const gameweekStats: GameweekStat[] = Array.from(gameweekStatsMap.values())
+      .sort((a, b) => a.gameweekId - b.gameweekId);
+
+    return {
+      playerId,
+      playerName: player.name,
+      totalPredictions,
+      completedPredictions: completedCount,
+      correctScores,
+      correctResults,
+      totalPoints,
+      averagePointsPerGameweek: Math.round(averagePointsPerGameweek * 10) / 10,
+      accuracyRate: Math.round(accuracyRate * 10) / 10,
+      scoreAccuracyRate: Math.round(scoreAccuracyRate * 10) / 10,
+      bestPredictions,
+      worstPredictions,
+      gameweekStats,
+    };
   }
 }
 
