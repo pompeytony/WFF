@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Target, TrendingUp, Award, Calendar } from "lucide-react";
+import { Trophy, Target, TrendingUp, Award, Calendar, TrendingDown, Minus, ArrowUp, ArrowDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,14 @@ interface GameweekStat {
   predictions: number;
   correctScores: number;
   correctResults: number;
+}
+
+interface FormGuideEntry {
+  gameweekId: number;
+  gameweekName: string;
+  points: number;
+  rank: number;
+  totalPlayers: number;
 }
 
 interface PlayerPerformance {
@@ -50,6 +58,40 @@ export default function Performance() {
     queryKey: [`/api/players/${user?.id}/performance`],
     enabled: !!user?.id,
   });
+
+  const { data: formGuide, isLoading: formGuideLoading } = useQuery<FormGuideEntry[]>({
+    queryKey: [`/api/players/${user?.id}/form-guide`],
+    enabled: !!user?.id,
+  });
+
+  // Calculate trend for form guide
+  const calculateTrend = () => {
+    if (!formGuide || formGuide.length < 2) return null;
+    
+    // For 2 gameweeks: simple comparison
+    if (formGuide.length === 2) {
+      const diff = formGuide[1].points - formGuide[0].points;
+      if (diff > 2) return "improving";
+      if (diff < -2) return "declining";
+      return "stable";
+    }
+    
+    // For 3+ gameweeks: split into non-overlapping halves
+    const midpoint = Math.floor(formGuide.length / 2);
+    const olderPoints = formGuide.slice(0, midpoint).map(g => g.points);
+    const recentPoints = formGuide.slice(midpoint).map(g => g.points);
+    
+    const olderAvg = olderPoints.reduce((a, b) => a + b, 0) / olderPoints.length;
+    const recentAvg = recentPoints.reduce((a, b) => a + b, 0) / recentPoints.length;
+    
+    const diff = recentAvg - olderAvg;
+    
+    if (diff > 2) return "improving";
+    if (diff < -2) return "declining";
+    return "stable";
+  };
+
+  const trend = calculateTrend();
 
   if (isLoading) {
     return (
@@ -173,6 +215,77 @@ export default function Performance() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Form Guide */}
+      {formGuide && formGuide.length > 0 && (
+        <Card className="mb-8" data-testid="card-form-guide">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-blue-600" />
+                  Recent Form Guide
+                </CardTitle>
+                <CardDescription>Last {formGuide.length} gameweeks performance</CardDescription>
+              </div>
+              {trend && (
+                <div className="flex items-center gap-2">
+                  {trend === "improving" && (
+                    <Badge variant="default" className="bg-green-600 text-white flex items-center gap-1" data-testid="badge-trend-improving">
+                      <ArrowUp className="h-3 w-3" />
+                      Improving
+                    </Badge>
+                  )}
+                  {trend === "declining" && (
+                    <Badge variant="destructive" className="flex items-center gap-1" data-testid="badge-trend-declining">
+                      <ArrowDown className="h-3 w-3" />
+                      Declining
+                    </Badge>
+                  )}
+                  {trend === "stable" && (
+                    <Badge variant="secondary" className="flex items-center gap-1" data-testid="badge-trend-stable">
+                      <Minus className="h-3 w-3" />
+                      Stable
+                    </Badge>
+                  )}
+                </div>
+              )}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+              {formGuide.map((entry, idx) => (
+                <div 
+                  key={entry.gameweekId}
+                  className="flex flex-col items-center p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+                  data-testid={`form-guide-entry-${idx}`}
+                >
+                  <div className="text-sm font-medium text-muted-foreground mb-2">
+                    {entry.gameweekName}
+                  </div>
+                  <div className="text-3xl font-bold mb-1" data-testid={`text-form-points-${idx}`}>
+                    {entry.points}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Rank {entry.rank}/{entry.totalPlayers}
+                  </div>
+                  {idx > 0 && (
+                    <div className="mt-2">
+                      {entry.points > formGuide[idx - 1].points ? (
+                        <TrendingUp className="h-4 w-4 text-green-600" />
+                      ) : entry.points < formGuide[idx - 1].points ? (
+                        <TrendingDown className="h-4 w-4 text-red-600" />
+                      ) : (
+                        <Minus className="h-4 w-4 text-gray-400" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Best Predictions */}
       {performance.bestPredictions.length > 0 && (
