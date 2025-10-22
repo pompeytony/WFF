@@ -209,7 +209,7 @@ export class MemStorage implements IStorage {
 
     testPlayers.forEach(player => {
       const id = this.currentPlayerId++;
-      this.players.set(id, { ...player, id, isAdmin: false });
+      this.players.set(id, { ...player, id, phoneNumber: null, isAdmin: false });
     });
 
     // Create active gameweek
@@ -307,7 +307,7 @@ export class MemStorage implements IStorage {
 
   async createPlayer(player: InsertPlayer): Promise<Player> {
     const id = this.currentPlayerId++;
-    const newPlayer: Player = { ...player, id, isAdmin: false };
+    const newPlayer: Player = { ...player, id, phoneNumber: player.phoneNumber || null, isAdmin: false };
     this.players.set(id, newPlayer);
     return newPlayer;
   }
@@ -1110,13 +1110,13 @@ export class DatabaseStorage implements IStorage {
       }
 
       // Sort scores to determine rank
-      const sortedScores = [...allScores].sort((a, b) => b.totalPoints - a.totalPoints);
+      const sortedScores = [...allScores].sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0));
       const rank = sortedScores.findIndex(s => s.playerId === playerId) + 1;
 
       formGuide.push({
         gameweekId: gameweek.id,
         gameweekName: gameweek.name,
-        points: playerScore.totalPoints,
+        points: playerScore.totalPoints || 0,
         rank,
         totalPlayers: allScores.length,
       });
@@ -1127,14 +1127,15 @@ export class DatabaseStorage implements IStorage {
 
   async getCrowdPredictionInsights(gameweekId?: number): Promise<CrowdAccuracy> {
     // Get completed fixtures (all or for specific gameweek)
-    const completedFixturesQuery = db
-      .select()
-      .from(fixtures)
-      .where(eq(fixtures.isComplete, true));
-    
     const completedFixtures = gameweekId 
-      ? await completedFixturesQuery.where(eq(fixtures.gameweekId, gameweekId))
-      : await completedFixturesQuery;
+      ? await db
+          .select()
+          .from(fixtures)
+          .where(and(eq(fixtures.isComplete, true), eq(fixtures.gameweekId, gameweekId)))
+      : await db
+          .select()
+          .from(fixtures)
+          .where(eq(fixtures.isComplete, true));
 
     if (completedFixtures.length === 0) {
       return {

@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trophy, Target, TrendingUp, Award, Calendar, TrendingDown, Minus, ArrowUp, ArrowDown } from "lucide-react";
+import { Trophy, Target, TrendingUp, Award, Calendar, TrendingDown, Minus, ArrowUp, ArrowDown, Users, BarChart } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 interface PredictionDetail {
   fixtureId: number;
@@ -31,6 +32,32 @@ interface FormGuideEntry {
   points: number;
   rank: number;
   totalPlayers: number;
+}
+
+interface PredictionInsight {
+  fixtureId: number;
+  homeTeam: string;
+  awayTeam: string;
+  gameweekName: string;
+  totalPredictions: number;
+  mostPredictedScore: string;
+  mostPredictedCount: number;
+  actualScore: string | null;
+  crowdWasRight: boolean | null;
+}
+
+interface CrowdAccuracy {
+  totalCompletedFixtures: number;
+  crowdCorrectCount: number;
+  crowdAccuracyRate: number;
+  recentInsights: PredictionInsight[];
+}
+
+interface HistoricalPoint {
+  gameweekId: number;
+  gameweekName: string;
+  points: number;
+  cumulativePoints: number;
 }
 
 interface PlayerPerformance {
@@ -61,6 +88,16 @@ export default function Performance() {
 
   const { data: formGuide, isLoading: formGuideLoading } = useQuery<FormGuideEntry[]>({
     queryKey: [`/api/players/${user?.id}/form-guide`],
+    enabled: !!user?.id,
+  });
+
+  const { data: crowdInsights, isLoading: crowdInsightsLoading } = useQuery<CrowdAccuracy>({
+    queryKey: ["/api/insights/crowd-predictions"],
+    enabled: !!user?.id,
+  });
+
+  const { data: historicalPoints, isLoading: historicalPointsLoading } = useQuery<HistoricalPoint[]>({
+    queryKey: [`/api/players/${user?.id}/historical-points`],
     enabled: !!user?.id,
   });
 
@@ -382,6 +419,144 @@ export default function Performance() {
           </CardContent>
         </Card>
       )}
+
+      {/* Crowd Prediction Insights */}
+      <Card className="mb-8" data-testid="card-crowd-insights">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="h-5 w-5 text-purple-600" />
+                Crowd Prediction Insights
+              </CardTitle>
+              <CardDescription>How often does the crowd get it right?</CardDescription>
+            </div>
+            {crowdInsights && (
+              <div className="text-right">
+                <div className="text-3xl font-bold text-purple-600">{crowdInsights.crowdAccuracyRate}%</div>
+                <p className="text-xs text-muted-foreground">
+                  {crowdInsights.crowdCorrectCount} of {crowdInsights.totalCompletedFixtures} correct
+                </p>
+              </div>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {crowdInsightsLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : crowdInsights && crowdInsights.recentInsights.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Match</TableHead>
+                  <TableHead>Gameweek</TableHead>
+                  <TableHead>Most Predicted</TableHead>
+                  <TableHead>Actual Score</TableHead>
+                  <TableHead className="text-right">Result</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {crowdInsights.recentInsights.map((insight, idx) => (
+                  <TableRow key={insight.fixtureId} data-testid={`row-crowd-insight-${idx}`}>
+                    <TableCell className="font-medium">
+                      {insight.homeTeam} vs {insight.awayTeam}
+                    </TableCell>
+                    <TableCell>{insight.gameweekName}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{insight.mostPredictedScore}</span>
+                        <span className="text-xs text-muted-foreground">
+                          ({insight.mostPredictedCount}/{insight.totalPredictions})
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell>{insight.actualScore || "-"}</TableCell>
+                    <TableCell className="text-right">
+                      {insight.crowdWasRight !== null && (
+                        <Badge 
+                          variant={insight.crowdWasRight ? "default" : "destructive"}
+                          className={insight.crowdWasRight ? "bg-green-600" : ""}
+                        >
+                          {insight.crowdWasRight ? "✓ Correct" : "✗ Wrong"}
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="py-8 text-center text-muted-foreground" data-testid="crowd-insights-empty">
+              <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p>No completed fixtures with predictions yet.</p>
+              <p className="text-sm">Crowd insights will appear once fixtures are completed.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Historical Points Chart */}
+      <Card className="mb-8" data-testid="card-historical-chart">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart className="h-5 w-5 text-indigo-600" />
+            Points Progression
+          </CardTitle>
+          <CardDescription>Your journey through the season</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {historicalPointsLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-64 w-full" />
+            </div>
+          ) : historicalPoints && historicalPoints.length > 0 ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={historicalPoints}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis 
+                  dataKey="gameweekName" 
+                  tick={{ fontSize: 12 }}
+                  angle={-45}
+                  textAnchor="end"
+                  height={80}
+                />
+                <YAxis yAxisId="left" />
+                <YAxis yAxisId="right" orientation="right" />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  yAxisId="left"
+                  type="monotone" 
+                  dataKey="points" 
+                  stroke="#8b5cf6" 
+                  strokeWidth={2}
+                  name="Gameweek Points"
+                  dot={{ r: 4 }}
+                />
+                <Line 
+                  yAxisId="right"
+                  type="monotone" 
+                  dataKey="cumulativePoints" 
+                  stroke="#10b981" 
+                  strokeWidth={2}
+                  name="Total Points"
+                  dot={{ r: 4 }}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <div className="py-12 text-center text-muted-foreground" data-testid="historical-chart-empty">
+              <BarChart className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <p>No historical data available yet.</p>
+              <p className="text-sm">Your points progression will appear once gameweeks are completed.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Gameweek Statistics */}
       {performance.gameweekStats.length > 0 && (
