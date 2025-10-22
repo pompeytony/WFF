@@ -46,12 +46,12 @@ export default function Performance() {
     queryKey: ["/api/auth/user"] 
   });
 
-  const { data: performance, isLoading } = useQuery<PlayerPerformance>({
+  const { data: performance, isLoading, error } = useQuery<PlayerPerformance>({
     queryKey: [`/api/players/${user?.id}/performance`],
     enabled: !!user?.id,
   });
 
-  if (isLoading || !performance) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">
@@ -63,6 +63,47 @@ export default function Performance() {
             <Skeleton key={i} className="h-32" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    // Check if it's a 404 error (no data yet) vs other errors
+    // The error message format from queryClient is: "STATUS_CODE: error text"
+    const is404 = error instanceof Error && error.message.startsWith("404:");
+    
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Trophy className={`h-12 w-12 mx-auto mb-4 ${is404 ? 'text-muted-foreground' : 'text-red-600'}`} />
+            <h3 className="text-lg font-semibold mb-2">
+              {is404 ? 'No Performance Data Yet' : 'Error Loading Performance Data'}
+            </h3>
+            <p className="text-muted-foreground">
+              {is404 
+                ? 'Your performance statistics will appear here once you start making predictions and fixtures are completed.' 
+                : 'Unable to load your performance statistics. Please try again later.'
+              }
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!performance) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Trophy className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+            <h3 className="text-lg font-semibold mb-2">No performance data available</h3>
+            <p className="text-muted-foreground">
+              Your performance statistics will appear here once you start making predictions.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     );
   }

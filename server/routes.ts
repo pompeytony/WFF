@@ -220,9 +220,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const performance = await storage.getPlayerPerformance(playerId);
+      if (!performance) {
+        return res.status(404).json({ error: "Player performance data not found" });
+      }
+      
       res.json(performance);
     } catch (error) {
       console.error("Error fetching player performance:", error);
+      if (error instanceof Error && error.message === "Player not found") {
+        return res.status(404).json({ error: "Player not found" });
+      }
       res.status(500).json({ error: "Failed to fetch player performance" });
     }
   });
