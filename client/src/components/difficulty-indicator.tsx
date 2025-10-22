@@ -17,6 +17,7 @@ const DifficultyIndicator = ({
   className = ""
 }: DifficultyIndicatorProps) => {
   const difficulty = calculateMatchDifficulty(homeTeam, awayTeam);
+  console.log('DifficultyIndicator render:', { homeTeam, awayTeam, difficulty });
   
   const getIcon = (level: MatchDifficulty['level']) => {
     const iconClass = size === "small" ? "w-3 h-3" : size === "medium" ? "w-4 h-4" : "w-5 h-5";
