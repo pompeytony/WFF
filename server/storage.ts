@@ -66,6 +66,13 @@ export interface IStorage {
   // Player Performance
   getPlayerPerformance(playerId: number): Promise<PlayerPerformance>;
   getPlayerFormGuide(playerId: number): Promise<FormGuideEntry[]>;
+  
+  // Prediction Insights
+  getCrowdPredictionInsights(gameweekId?: number): Promise<CrowdAccuracy>;
+  
+  // Historical Charts
+  getPlayerHistoricalPoints(playerId: number): Promise<HistoricalPoint[]>;
+  getPlayerComparison(player1Id: number, player2Id: number): Promise<PlayerComparison>;
 }
 
 export interface PlayerPerformance {
@@ -110,6 +117,47 @@ export interface FormGuideEntry {
   points: number;
   rank: number;
   totalPlayers: number;
+}
+
+export interface PredictionInsight {
+  fixtureId: number;
+  homeTeam: string;
+  awayTeam: string;
+  gameweekName: string;
+  totalPredictions: number;
+  mostPredictedScore: string;
+  mostPredictedCount: number;
+  actualScore: string | null;
+  crowdWasRight: boolean | null;
+}
+
+export interface CrowdAccuracy {
+  totalCompletedFixtures: number;
+  crowdCorrectCount: number;
+  crowdAccuracyRate: number;
+  recentInsights: PredictionInsight[];
+}
+
+export interface HistoricalPoint {
+  gameweekId: number;
+  gameweekName: string;
+  points: number;
+  cumulativePoints: number;
+}
+
+export interface PlayerComparison {
+  player1Id: number;
+  player1Name: string;
+  player2Id: number;
+  player2Name: string;
+  gameweeks: {
+    gameweekId: number;
+    gameweekName: string;
+    player1Points: number;
+    player2Points: number;
+    player1Cumulative: number;
+    player2Cumulative: number;
+  }[];
 }
 
 export class MemStorage implements IStorage {
@@ -534,6 +582,18 @@ export class MemStorage implements IStorage {
 
   async getPlayerFormGuide(playerId: number): Promise<FormGuideEntry[]> {
     throw new Error("MemStorage does not support form guide");
+  }
+
+  async getCrowdPredictionInsights(gameweekId?: number): Promise<CrowdAccuracy> {
+    throw new Error("MemStorage does not support prediction insights");
+  }
+
+  async getPlayerHistoricalPoints(playerId: number): Promise<HistoricalPoint[]> {
+    throw new Error("MemStorage does not support historical charts");
+  }
+
+  async getPlayerComparison(player1Id: number, player2Id: number): Promise<PlayerComparison> {
+    throw new Error("MemStorage does not support player comparisons");
   }
 }
 
@@ -1063,6 +1123,202 @@ export class DatabaseStorage implements IStorage {
     }
 
     return formGuide;
+  }
+
+  async getCrowdPredictionInsights(gameweekId?: number): Promise<CrowdAccuracy> {
+    // Get completed fixtures (all or for specific gameweek)
+    const completedFixturesQuery = db
+      .select()
+      .from(fixtures)
+      .where(eq(fixtures.isComplete, true));
+    
+    const completedFixtures = gameweekId 
+      ? await completedFixturesQuery.where(eq(fixtures.gameweekId, gameweekId))
+      : await completedFixturesQuery;
+
+    if (completedFixtures.length === 0) {
+      return {
+        totalCompletedFixtures: 0,
+        crowdCorrectCount: 0,
+        crowdAccuracyRate: 0,
+        recentInsights: [],
+      };
+    }
+
+    const insights: PredictionInsight[] = [];
+    let crowdCorrectCount = 0;
+
+    for (const fixture of completedFixtures) {
+      // Get all predictions for this fixture
+      const fixturePredictions = await db
+        .select()
+        .from(predictions)
+        .where(eq(predictions.fixtureId, fixture.id));
+
+      if (fixturePredictions.length === 0) continue;
+
+      // Count each unique score prediction
+      const scoreCounts = new Map<string, number>();
+      fixturePredictions.forEach(pred => {
+        const scoreKey = `${pred.homeScore}-${pred.awayScore}`;
+        scoreCounts.set(scoreKey, (scoreCounts.get(scoreKey) || 0) + 1);
+      });
+
+      // Find most predicted score
+      let mostPredictedScore = "";
+      let mostPredictedCount = 0;
+      scoreCounts.forEach((count, score) => {
+        if (count > mostPredictedCount) {
+          mostPredictedScore = score;
+          mostPredictedCount = count;
+        }
+      });
+
+      // Check if crowd was right
+      const actualScore = fixture.homeScore !== null && fixture.awayScore !== null
+        ? `${fixture.homeScore}-${fixture.awayScore}`
+        : null;
+      
+      const crowdWasRight = actualScore === mostPredictedScore;
+      if (crowdWasRight) crowdCorrectCount++;
+
+      // Get gameweek name
+      const [gameweek] = await db
+        .select()
+        .from(gameweeks)
+        .where(eq(gameweeks.id, fixture.gameweekId));
+
+      insights.push({
+        fixtureId: fixture.id,
+        homeTeam: fixture.homeTeam,
+        awayTeam: fixture.awayTeam,
+        gameweekName: gameweek?.name || "Unknown",
+        totalPredictions: fixturePredictions.length,
+        mostPredictedScore,
+        mostPredictedCount,
+        actualScore,
+        crowdWasRight,
+      });
+    }
+
+    // Sort by most recent and take last 10
+    const recentInsights = insights.slice(-10).reverse();
+
+    return {
+      totalCompletedFixtures: completedFixtures.length,
+      crowdCorrectCount,
+      crowdAccuracyRate: Math.round((crowdCorrectCount / completedFixtures.length) * 100 * 10) / 10,
+      recentInsights,
+    };
+  }
+
+  async getPlayerHistoricalPoints(playerId: number): Promise<HistoricalPoint[]> {
+    const player = await this.getPlayer(playerId);
+    if (!player) {
+      throw new Error("Player not found");
+    }
+
+    // Get all completed gameweeks in order
+    const completedGameweeks = await db
+      .select()
+      .from(gameweeks)
+      .where(eq(gameweeks.isComplete, true))
+      .orderBy(gameweeks.id);
+
+    const historicalPoints: HistoricalPoint[] = [];
+    let cumulativePoints = 0;
+
+    for (const gameweek of completedGameweeks) {
+      const [weeklyScore] = await db
+        .select()
+        .from(weeklyScores)
+        .where(
+          and(
+            eq(weeklyScores.playerId, playerId),
+            eq(weeklyScores.gameweekId, gameweek.id)
+          )
+        );
+
+      const points = weeklyScore?.totalPoints || 0;
+      cumulativePoints += points;
+
+      historicalPoints.push({
+        gameweekId: gameweek.id,
+        gameweekName: gameweek.name,
+        points,
+        cumulativePoints,
+      });
+    }
+
+    return historicalPoints;
+  }
+
+  async getPlayerComparison(player1Id: number, player2Id: number): Promise<PlayerComparison> {
+    const [player1, player2] = await Promise.all([
+      this.getPlayer(player1Id),
+      this.getPlayer(player2Id),
+    ]);
+
+    if (!player1 || !player2) {
+      throw new Error("One or both players not found");
+    }
+
+    // Get all completed gameweeks in order
+    const completedGameweeks = await db
+      .select()
+      .from(gameweeks)
+      .where(eq(gameweeks.isComplete, true))
+      .orderBy(gameweeks.id);
+
+    const gameweekComparisons: PlayerComparison["gameweeks"] = [];
+    let player1Cumulative = 0;
+    let player2Cumulative = 0;
+
+    for (const gameweek of completedGameweeks) {
+      const [score1, score2] = await Promise.all([
+        db
+          .select()
+          .from(weeklyScores)
+          .where(
+            and(
+              eq(weeklyScores.playerId, player1Id),
+              eq(weeklyScores.gameweekId, gameweek.id)
+            )
+          ),
+        db
+          .select()
+          .from(weeklyScores)
+          .where(
+            and(
+              eq(weeklyScores.playerId, player2Id),
+              eq(weeklyScores.gameweekId, gameweek.id)
+            )
+          ),
+      ]);
+
+      const player1Points = score1[0]?.totalPoints || 0;
+      const player2Points = score2[0]?.totalPoints || 0;
+
+      player1Cumulative += player1Points;
+      player2Cumulative += player2Points;
+
+      gameweekComparisons.push({
+        gameweekId: gameweek.id,
+        gameweekName: gameweek.name,
+        player1Points,
+        player2Points,
+        player1Cumulative,
+        player2Cumulative,
+      });
+    }
+
+    return {
+      player1Id,
+      player1Name: player1.name,
+      player2Id,
+      player2Name: player2.name,
+      gameweeks: gameweekComparisons,
+    };
   }
 }
 

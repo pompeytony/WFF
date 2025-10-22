@@ -253,6 +253,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Prediction Insights
+  app.get("/api/insights/crowd-predictions", requireAuth, async (req, res) => {
+    try {
+      const gameweekId = req.query.gameweekId ? parseInt(req.query.gameweekId as string) : undefined;
+      const insights = await storage.getCrowdPredictionInsights(gameweekId);
+      res.json(insights);
+    } catch (error) {
+      console.error("Error fetching crowd prediction insights:", error);
+      res.status(500).json({ error: "Failed to fetch prediction insights" });
+    }
+  });
+
+  // Historical Charts
+  app.get("/api/players/:id/historical-points", requireAuth, async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      if (isNaN(playerId)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+
+      const historicalPoints = await storage.getPlayerHistoricalPoints(playerId);
+      res.json(historicalPoints);
+    } catch (error) {
+      console.error("Error fetching historical points:", error);
+      if (error instanceof Error && error.message === "Player not found") {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      res.status(500).json({ error: "Failed to fetch historical points" });
+    }
+  });
+
+  app.get("/api/players/compare/:id1/:id2", requireAuth, async (req, res) => {
+    try {
+      const player1Id = parseInt(req.params.id1);
+      const player2Id = parseInt(req.params.id2);
+      
+      if (isNaN(player1Id) || isNaN(player2Id)) {
+        return res.status(400).json({ error: "Invalid player IDs" });
+      }
+
+      const comparison = await storage.getPlayerComparison(player1Id, player2Id);
+      res.json(comparison);
+    } catch (error) {
+      console.error("Error fetching player comparison:", error);
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({ error: "One or both players not found" });
+      }
+      res.status(500).json({ error: "Failed to fetch player comparison" });
+    }
+  });
+
   // Gameweeks
   app.get("/api/gameweeks", async (req, res) => {
     const gameweeks = await storage.getGameweeks();
