@@ -362,7 +362,7 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
                       homeTeam={fixture.homeTeam} 
                       awayTeam={fixture.awayTeam} 
                       size="small" 
-                      showLabel={false}
+                      showLabel={true}
                     />
                   </div>
                   <div className="text-sm text-gray-500 font-medium">{kickoffTime}</div>
