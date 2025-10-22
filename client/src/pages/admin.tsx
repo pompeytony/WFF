@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import type { Fixture, Gameweek } from "@shared/schema";
+import type { Fixture, Gameweek, TeamStrengthRating } from "@shared/schema";
 import { PREMIER_LEAGUE_TEAMS, getPremierLeagueTeamOptions, gameweekSupportsPremierLeagueTeams } from "@shared/premierLeagueTeams";
 
 // Helper functions for UK timezone handling
@@ -42,6 +42,198 @@ const convertUKTimeToUTC = (ukTimeString: string): string => {
   const utcTime = new Date(inputDate.getTime() + offsetDiff);
   
   return utcTime.toISOString();
+};
+
+const TeamRatingsManager = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [editingTeam, setEditingTeam] = useState<{teamName: string; currentRating: number} | null>(null);
+  const [newRating, setNewRating] = useState("");
+  const [notes, setNotes] = useState("");
+
+  // Fetch team ratings from database
+  const { data: teamRatings = [] } = useQuery<TeamStrengthRating[]>({
+    queryKey: ["/api/team-ratings"],
+  });
+
+  // Create a map of database ratings for easy lookup
+  const dbRatingsMap = new Map(teamRatings.map(r => [r.teamName, r.strengthRating]));
+
+  // Update team rating mutation
+  const updateRatingMutation = useMutation({
+    mutationFn: async (data: { teamName: string; strengthRating: number; notes?: string }) => {
+      return apiRequest("POST", "/api/team-ratings", {
+        teamName: data.teamName,
+        strengthRating: data.strengthRating,
+        updatedBy: "admin",
+        notes: data.notes || undefined
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Rating updated!",
+        description: "Team strength rating has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/team-ratings"] });
+      setEditingTeam(null);
+      setNewRating("");
+      setNotes("");
+    },
+    onError: (error: any) => {
+      toast({
+        variant: "destructive",
+        title: "Update failed",
+        description: error.message || "Failed to update team rating",
+      });
+    },
+  });
+
+  const handleEditClick = (teamName: string, currentRating: number) => {
+    setEditingTeam({ teamName, currentRating });
+    setNewRating(currentRating.toString());
+    setNotes("");
+  };
+
+  const handleSaveRating = () => {
+    if (!editingTeam) return;
+    
+    const rating = parseInt(newRating);
+    if (isNaN(rating) || rating < 1 || rating > 10) {
+      toast({
+        variant: "destructive",
+        title: "Invalid rating",
+        description: "Rating must be between 1 and 10",
+      });
+      return;
+    }
+
+    updateRatingMutation.mutate({
+      teamName: editingTeam.teamName,
+      strengthRating: rating,
+      notes: notes.trim() || undefined
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr className="border-b bg-gray-50">
+              <th className="text-left py-3 px-4 font-semibold">Team</th>
+              <th className="text-center py-3 px-4 font-semibold">Current Rating</th>
+              <th className="text-center py-3 px-4 font-semibold">Status</th>
+              <th className="text-center py-3 px-4 font-semibold">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {PREMIER_LEAGUE_TEAMS.map((team) => {
+              const dbRating = dbRatingsMap.get(team.name);
+              const currentRating = dbRating ?? team.strengthRating;
+              const isCustomized = dbRating !== undefined;
+
+              return (
+                <tr key={team.id} className="border-b hover:bg-gray-50">
+                  <td className="py-3 px-4">
+                    <div className="font-medium">{team.name}</div>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <span className={`inline-flex items-center justify-center w-10 h-10 rounded-full font-bold ${
+                      currentRating >= 8 ? 'bg-red-100 text-red-700' :
+                      currentRating >= 7 ? 'bg-orange-100 text-orange-700' :
+                      currentRating >= 5 ? 'bg-yellow-100 text-yellow-700' :
+                      currentRating >= 3 ? 'bg-blue-100 text-blue-700' :
+                      'bg-gray-100 text-gray-700'
+                    }`}>
+                      {currentRating}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      isCustomized
+                        ? 'bg-green-100 text-green-800'
+                        : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {isCustomized ? 'Custom' : 'Default'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 text-center">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => handleEditClick(team.name, currentRating)}
+                      data-testid={`button-edit-rating-${team.id}`}
+                    >
+                      <i className="fas fa-edit mr-1"></i>
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Edit Rating Dialog */}
+      <Dialog open={!!editingTeam} onOpenChange={(open) => !open && setEditingTeam(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Team Strength Rating</DialogTitle>
+          </DialogHeader>
+          {editingTeam && (
+            <div className="space-y-4">
+              <div>
+                <Label className="font-semibold">Team: {editingTeam.teamName}</Label>
+              </div>
+              <div>
+                <Label htmlFor="rating">Strength Rating (1-10)</Label>
+                <Input
+                  id="rating"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={newRating}
+                  onChange={(e) => setNewRating(e.target.value)}
+                  placeholder="Enter rating 1-10"
+                  data-testid="input-team-rating"
+                />
+                <p className="text-sm text-gray-500 mt-1">
+                  Current: {editingTeam.currentRating} | 10 = strongest, 1 = weakest
+                </p>
+              </div>
+              <div>
+                <Label htmlFor="notes">Notes (optional)</Label>
+                <Input
+                  id="notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  placeholder="e.g., Updated based on recent form"
+                  data-testid="input-rating-notes"
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <Button
+                  variant="outline"
+                  onClick={() => setEditingTeam(null)}
+                  data-testid="button-cancel-rating"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleSaveRating}
+                  disabled={updateRatingMutation.isPending}
+                  data-testid="button-save-rating"
+                >
+                  {updateRatingMutation.isPending ? "Saving..." : "Save Rating"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 };
 
 const Admin = () => {
@@ -1625,6 +1817,22 @@ const Admin = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Team Strength Ratings Management */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-football-navy">
+            <i className="fas fa-star mr-2 text-football-gold"></i>
+            Team Strength Ratings
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-gray-600 mb-4">
+            Manage team strength ratings (1-10 scale) to control prediction difficulty calculations.
+          </p>
+          <TeamRatingsManager />
+        </CardContent>
+      </Card>
 
       {/* Recent Fixtures Status */}
       <Card className="mt-8">

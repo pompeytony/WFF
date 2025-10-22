@@ -9,7 +9,9 @@ import {
   insertFixtureSchema, 
   insertPredictionSchema,
   updateFixtureResultSchema,
-  updatePredictionSchema
+  updatePredictionSchema,
+  insertTeamStrengthRatingSchema,
+  updateTeamStrengthRatingSchema
 } from "@shared/schema";
 
 // Simple in-memory auth store
@@ -1025,6 +1027,67 @@ Good luck! ⚽
       });
     } catch (error) {
       res.status(500).json({ error: "Failed to load dashboard data" });
+    }
+  });
+
+  // Team Strength Rating Routes
+  
+  // Get all team strength ratings
+  app.get('/api/team-ratings', async (req, res) => {
+    try {
+      const ratings = await storage.getTeamStrengthRatings();
+      res.json(ratings);
+    } catch (error) {
+      console.error("Error fetching team ratings:", error);
+      res.status(500).json({ error: "Failed to fetch team ratings" });
+    }
+  });
+
+  // Get a specific team strength rating
+  app.get('/api/team-ratings/:teamName', async (req, res) => {
+    try {
+      const { teamName } = req.params;
+      const rating = await storage.getTeamStrengthRating(teamName);
+      if (!rating) {
+        return res.status(404).json({ error: "Team rating not found" });
+      }
+      res.json(rating);
+    } catch (error) {
+      console.error("Error fetching team rating:", error);
+      res.status(500).json({ error: "Failed to fetch team rating" });
+    }
+  });
+
+  // Create or update team strength rating (admin only)
+  app.post('/api/team-ratings', requireAdmin, async (req, res) => {
+    try {
+      const validatedData = insertTeamStrengthRatingSchema.parse(req.body);
+      const rating = await storage.upsertTeamStrengthRating(validatedData);
+      res.json(rating);
+    } catch (error: any) {
+      console.error("Error creating/updating team rating:", error);
+      res.status(400).json({ error: error.message || "Failed to create/update team rating" });
+    }
+  });
+
+  // Update team strength rating (admin only)
+  app.patch('/api/team-ratings/:teamName', requireAdmin, async (req, res) => {
+    try {
+      const { teamName } = req.params;
+      const validatedData = updateTeamStrengthRatingSchema.parse(req.body);
+      
+      // Check if team rating exists
+      const existing = await storage.getTeamStrengthRating(teamName);
+      if (!existing) {
+        return res.status(404).json({ error: "Team rating not found" });
+      }
+      
+      await storage.updateTeamStrengthRating(teamName, validatedData);
+      const updated = await storage.getTeamStrengthRating(teamName);
+      res.json(updated);
+    } catch (error: any) {
+      console.error("Error updating team rating:", error);
+      res.status(400).json({ error: error.message || "Failed to update team rating" });
     }
   });
 

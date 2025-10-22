@@ -1,5 +1,6 @@
 import { db } from "./db";
-import { players, gameweeks, fixtures, weeklyScores } from "@shared/schema";
+import { players, gameweeks, fixtures, weeklyScores, teamStrengthRatings } from "@shared/schema";
+import { PREMIER_LEAGUE_TEAMS } from "@shared/premierLeagueTeams";
 
 
 export async function seedDatabase() {
@@ -11,8 +12,24 @@ export async function seedDatabase() {
     
     // Check if data already exists
     const existingPlayers = await db.select().from(players);
+    
+    // Always seed team ratings if they don't exist (independent of player data)
+    const existingRatings = await db.select().from(teamStrengthRatings);
+    if (existingRatings.length === 0) {
+      console.log("📊 Seeding team strength ratings...");
+      const teamRatingsData = PREMIER_LEAGUE_TEAMS.map(team => ({
+        teamName: team.name,
+        strengthRating: team.strengthRating,
+        updatedBy: "system",
+        notes: "Initial default rating"
+      }));
+
+      await db.insert(teamStrengthRatings).values(teamRatingsData);
+      console.log(`✅ Created team strength ratings for ${teamRatingsData.length} teams`);
+    }
+    
     if (existingPlayers.length > 0) {
-      console.log("📊 Database already has data, skipping seed");
+      console.log("📊 Database already has data, skipping player/fixture seed");
       return;
     }
     

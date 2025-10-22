@@ -73,6 +73,15 @@ export const weeklyScores = pgTable("weekly_scores", {
   isManagerOfWeek: boolean("is_manager_of_week").default(false),
 });
 
+export const teamStrengthRatings = pgTable("team_strength_ratings", {
+  id: serial("id").primaryKey(),
+  teamName: text("team_name").notNull().unique(),
+  strengthRating: integer("strength_rating").notNull(), // 1-10 scale
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  updatedBy: text("updated_by"), // Admin name or "system"
+  notes: text("notes"), // Optional notes about why rating changed
+});
+
 // Define relations
 
 export const playersRelations = relations(players, ({ many }) => ({
@@ -165,6 +174,21 @@ export const updatePredictionSchema = z.object({
   isJoker: z.boolean().optional(),
 });
 
+export const insertTeamStrengthRatingSchema = createInsertSchema(teamStrengthRatings).pick({
+  teamName: true,
+  strengthRating: true,
+  updatedBy: true,
+  notes: true,
+}).extend({
+  strengthRating: z.number().min(1).max(10),
+});
+
+export const updateTeamStrengthRatingSchema = z.object({
+  strengthRating: z.number().min(1).max(10),
+  updatedBy: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 
 
 export type UpsertUser = typeof users.$inferInsert;
@@ -181,3 +205,6 @@ export type WeeklyScore = typeof weeklyScores.$inferSelect;
 export type InsertWeeklyScore = z.infer<typeof insertWeeklyScoreSchema>;
 export type UpdateFixtureResult = z.infer<typeof updateFixtureResultSchema>;
 export type UpdatePrediction = z.infer<typeof updatePredictionSchema>;
+export type TeamStrengthRating = typeof teamStrengthRatings.$inferSelect;
+export type InsertTeamStrengthRating = z.infer<typeof insertTeamStrengthRatingSchema>;
+export type UpdateTeamStrengthRating = z.infer<typeof updateTeamStrengthRatingSchema>;

@@ -1,11 +1,12 @@
 import { 
-  users, players, gameweeks, fixtures, predictions, weeklyScores,
+  users, players, gameweeks, fixtures, predictions, weeklyScores, teamStrengthRatings,
   type User, type UpsertUser,
   type Player, type InsertPlayer,
   type Gameweek, type InsertGameweek,
   type Fixture, type InsertFixture,
   type Prediction, type InsertPrediction,
-  type WeeklyScore, type InsertWeeklyScore
+  type WeeklyScore, type InsertWeeklyScore,
+  type TeamStrengthRating, type InsertTeamStrengthRating, type UpdateTeamStrengthRating
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, inArray } from "drizzle-orm";
@@ -55,6 +56,12 @@ export interface IStorage {
 
   // Admin operations
   getPredictionsOverview(gameweekId: number): Promise<any>;
+  
+  // Team Strength Ratings
+  getTeamStrengthRatings(): Promise<TeamStrengthRating[]>;
+  getTeamStrengthRating(teamName: string): Promise<TeamStrengthRating | undefined>;
+  upsertTeamStrengthRating(rating: InsertTeamStrengthRating): Promise<TeamStrengthRating>;
+  updateTeamStrengthRating(teamName: string, updates: UpdateTeamStrengthRating): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -455,6 +462,23 @@ export class MemStorage implements IStorage {
       fixtureBreakdown
     };
   }
+
+  // Team Strength Ratings (not implemented for MemStorage)
+  async getTeamStrengthRatings(): Promise<TeamStrengthRating[]> {
+    return [];
+  }
+
+  async getTeamStrengthRating(teamName: string): Promise<TeamStrengthRating | undefined> {
+    return undefined;
+  }
+
+  async upsertTeamStrengthRating(rating: InsertTeamStrengthRating): Promise<TeamStrengthRating> {
+    throw new Error("MemStorage does not support team strength ratings");
+  }
+
+  async updateTeamStrengthRating(teamName: string, updates: UpdateTeamStrengthRating): Promise<void> {
+    throw new Error("MemStorage does not support team strength ratings");
+  }
 }
 
 export class DatabaseStorage implements IStorage {
@@ -729,6 +753,46 @@ export class DatabaseStorage implements IStorage {
       playersPending,
       fixtureBreakdown
     };
+  }
+
+  // Team Strength Ratings
+  async getTeamStrengthRatings(): Promise<TeamStrengthRating[]> {
+    return await db.select().from(teamStrengthRatings);
+  }
+
+  async getTeamStrengthRating(teamName: string): Promise<TeamStrengthRating | undefined> {
+    const [rating] = await db
+      .select()
+      .from(teamStrengthRatings)
+      .where(eq(teamStrengthRatings.teamName, teamName));
+    return rating || undefined;
+  }
+
+  async upsertTeamStrengthRating(rating: InsertTeamStrengthRating): Promise<TeamStrengthRating> {
+    const [result] = await db
+      .insert(teamStrengthRatings)
+      .values(rating)
+      .onConflictDoUpdate({
+        target: teamStrengthRatings.teamName,
+        set: {
+          strengthRating: rating.strengthRating,
+          updatedAt: new Date(),
+          updatedBy: rating.updatedBy,
+          notes: rating.notes,
+        },
+      })
+      .returning();
+    return result;
+  }
+
+  async updateTeamStrengthRating(teamName: string, updates: UpdateTeamStrengthRating): Promise<void> {
+    await db
+      .update(teamStrengthRatings)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(teamStrengthRatings.teamName, teamName));
   }
 }
 

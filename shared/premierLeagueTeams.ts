@@ -299,6 +299,23 @@ export interface MatchDifficulty {
 }
 
 /**
+ * Get team strength rating from custom ratings map or fallback to default
+ */
+export function getTeamStrength(
+  teamName: string,
+  customRatings?: Map<string, number>
+): number {
+  // Try custom ratings first (from database)
+  if (customRatings && customRatings.has(teamName)) {
+    return customRatings.get(teamName)!;
+  }
+  
+  // Fallback to hardcoded rating
+  const team = getPremierLeagueTeamByName(teamName);
+  return team?.strengthRating ?? 5; // Default to 5 if team not found
+}
+
+/**
  * Calculate prediction difficulty for a match based on team strengths
  * 
  * Logic:
@@ -307,8 +324,16 @@ export interface MatchDifficulty {
  * - Medium (5-6): Fairly balanced or mid-tier teams (difference 1-2)
  * - Hard (7-8): Evenly matched strong teams (both rated 7+, difference <= 1)
  * - Very Hard (9-10): Top-tier clash (both rated 8+, difference <= 1)
+ * 
+ * @param homeTeam - Home team name
+ * @param awayTeam - Away team name
+ * @param customRatings - Optional map of team names to strength ratings (overrides defaults)
  */
-export function calculateMatchDifficulty(homeTeam: string, awayTeam: string): MatchDifficulty {
+export function calculateMatchDifficulty(
+  homeTeam: string,
+  awayTeam: string,
+  customRatings?: Map<string, number>
+): MatchDifficulty {
   const home = getPremierLeagueTeamByName(homeTeam);
   const away = getPremierLeagueTeamByName(awayTeam);
   
@@ -323,8 +348,8 @@ export function calculateMatchDifficulty(homeTeam: string, awayTeam: string): Ma
     };
   }
   
-  const homeStrength = home.strengthRating;
-  const awayStrength = away.strengthRating;
+  const homeStrength = getTeamStrength(homeTeam, customRatings);
+  const awayStrength = getTeamStrength(awayTeam, customRatings);
   const difference = Math.abs(homeStrength - awayStrength);
   const averageStrength = (homeStrength + awayStrength) / 2;
   const maxStrength = Math.max(homeStrength, awayStrength);
