@@ -65,6 +65,7 @@ export interface IStorage {
   
   // Player Performance
   getPlayerPerformance(playerId: number): Promise<PlayerPerformance>;
+  getPlayerFormGuide(playerId: number): Promise<FormGuideEntry[]>;
 }
 
 export interface PlayerPerformance {
@@ -101,6 +102,14 @@ export interface GameweekStat {
   predictions: number;
   correctScores: number;
   correctResults: number;
+}
+
+export interface FormGuideEntry {
+  gameweekId: number;
+  gameweekName: string;
+  points: number;
+  rank: number;
+  totalPlayers: number;
 }
 
 export class MemStorage implements IStorage {
@@ -521,6 +530,10 @@ export class MemStorage implements IStorage {
 
   async getPlayerPerformance(playerId: number): Promise<PlayerPerformance> {
     throw new Error("MemStorage does not support player performance statistics");
+  }
+
+  async getPlayerFormGuide(playerId: number): Promise<FormGuideEntry[]> {
+    throw new Error("MemStorage does not support form guide");
   }
 }
 
@@ -996,6 +1009,60 @@ export class DatabaseStorage implements IStorage {
       worstPredictions,
       gameweekStats,
     };
+  }
+
+  async getPlayerFormGuide(playerId: number): Promise<FormGuideEntry[]> {
+    // Verify player exists
+    const player = await this.getPlayer(playerId);
+    if (!player) {
+      throw new Error(`Player with id ${playerId} not found`);
+    }
+
+    // Get all completed gameweeks with their weekly scores, ordered by most recent first
+    const completedGameweeks = await db
+      .select()
+      .from(gameweeks)
+      .where(eq(gameweeks.isComplete, true))
+      .orderBy(gameweeks.id);
+
+    if (completedGameweeks.length === 0) {
+      return [];
+    }
+
+    // Get the last 5 completed gameweeks
+    const last5Gameweeks = completedGameweeks.slice(-5);
+
+    const formGuide: FormGuideEntry[] = [];
+
+    for (const gameweek of last5Gameweeks) {
+      // Get all weekly scores for this gameweek
+      const allScores = await db
+        .select()
+        .from(weeklyScores)
+        .where(eq(weeklyScores.gameweekId, gameweek.id));
+
+      // Get the player's score for this gameweek
+      const playerScore = allScores.find(s => s.playerId === playerId);
+
+      // If player didn't participate in this gameweek, skip it
+      if (!playerScore) {
+        continue;
+      }
+
+      // Sort scores to determine rank
+      const sortedScores = [...allScores].sort((a, b) => b.totalPoints - a.totalPoints);
+      const rank = sortedScores.findIndex(s => s.playerId === playerId) + 1;
+
+      formGuide.push({
+        gameweekId: gameweek.id,
+        gameweekName: gameweek.name,
+        points: playerScore.totalPoints,
+        rank,
+        totalPlayers: allScores.length,
+      });
+    }
+
+    return formGuide;
   }
 }
 
