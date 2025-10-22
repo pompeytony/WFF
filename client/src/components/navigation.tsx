@@ -15,6 +15,7 @@ const Navigation = ({ user }: NavigationProps) => {
     { path: "/", label: "Dashboard", icon: "fas fa-home" },
     { path: "/league-table", label: "League Table", icon: "fas fa-table" },
     { path: "/results", label: "Results", icon: "fas fa-history" },
+    { path: "/performance", label: "Performance", icon: "fas fa-chart-line" },
     { path: "/predictions-overview", label: "Predictions", icon: "fas fa-eye" },
 
     ...(user?.isAdmin ? [

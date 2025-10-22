@@ -8,6 +8,7 @@ import Navigation from "@/components/navigation";
 import Dashboard from "@/pages/dashboard";
 import LeagueTable from "@/pages/league-table";
 import Results from "@/pages/results";
+import Performance from "@/pages/performance";
 import Admin from "@/pages/admin";
 import Players from "@/pages/players";
 import PredictionsOverview from "@/pages/predictions-overview";
@@ -100,6 +101,7 @@ function Router() {
         <Route path="/" component={Dashboard} />
         <Route path="/league-table" component={LeagueTable} />
         <Route path="/results" component={Results} />
+        <Route path="/performance" component={Performance} />
 
         <Route path="/predictions-overview" component={PredictionsOverview} />
         
