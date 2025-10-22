@@ -234,6 +234,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Player Form Guide
+  app.get("/api/players/:id/form-guide", requireAuth, async (req, res) => {
+    try {
+      const playerId = parseInt(req.params.id);
+      if (isNaN(playerId)) {
+        return res.status(400).json({ error: "Invalid player ID" });
+      }
+
+      const formGuide = await storage.getPlayerFormGuide(playerId);
+      res.json(formGuide);
+    } catch (error) {
+      console.error("Error fetching form guide:", error);
+      if (error instanceof Error && error.message.includes("not found")) {
+        return res.status(404).json({ error: "Player not found" });
+      }
+      res.status(500).json({ error: "Failed to fetch form guide" });
+    }
+  });
+
   // Gameweeks
   app.get("/api/gameweeks", async (req, res) => {
     const gameweeks = await storage.getGameweeks();
