@@ -279,7 +279,7 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6 space-y-3 sm:space-y-0">
         <h2 className="text-xl sm:text-2xl font-bold text-football-navy">
           <i className="fas fa-clipboard-list mr-2 text-football-green"></i>
-          {gameweek.name} Predictions
+          {gameweek.name} Predictions v2.0
         </h2>
         <div className="flex items-center space-x-2">
           <div className="text-sm text-gray-500">Deadline:</div>
