@@ -5,6 +5,7 @@ export interface PremierLeagueTeam {
   badgePath: string;
   primaryColor: string;
   secondaryColor: string;
+  strengthRating: number; // 1-10 scale: 10 = strongest (Man City, Liverpool), 1 = weakest
 }
 
 export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
@@ -14,7 +15,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'ARS',
     badgePath: '@assets/generated_images/Arsenal_FC_badge_c9c55cad.png',
     primaryColor: '#DC143C',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 9
   },
   {
     id: 'aston-villa',
@@ -22,7 +24,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'AVL',
     badgePath: '@assets/generated_images/Aston_Villa_badge_de451a89.png',
     primaryColor: '#7A003C',
-    secondaryColor: '#95BFE5'
+    secondaryColor: '#95BFE5',
+    strengthRating: 7
   },
   {
     id: 'bournemouth',
@@ -30,7 +33,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'BOU',
     badgePath: '@assets/generated_images/Bournemouth_FC_badge_7725e371.png',
     primaryColor: '#DA020E',
-    secondaryColor: '#000000'
+    secondaryColor: '#000000',
+    strengthRating: 5
   },
   {
     id: 'brentford',
@@ -38,7 +42,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'BRE',
     badgePath: '@assets/generated_images/Brentford_FC_badge_4dbea0d4.png',
     primaryColor: '#D20000',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 5
   },
   {
     id: 'brighton',
@@ -46,7 +51,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'BHA',
     badgePath: '@assets/generated_images/Brighton_FC_badge_c95f8c2f.png',
     primaryColor: '#0057B8',
-    secondaryColor: '#FFCD00'
+    secondaryColor: '#FFCD00',
+    strengthRating: 6
   },
   {
     id: 'burnley',
@@ -54,7 +60,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'BUR',
     badgePath: '@assets/generated_images/Burnley_FC_badge_8779ed43.png',
     primaryColor: '#6C1D45',
-    secondaryColor: '#99D6EA'
+    secondaryColor: '#99D6EA',
+    strengthRating: 3
   },
   {
     id: 'chelsea',
@@ -62,7 +69,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'CHE',
     badgePath: '@assets/generated_images/Chelsea_FC_badge_ecba08da.png',
     primaryColor: '#034694',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 8
   },
   {
     id: 'crystal-palace',
@@ -70,7 +78,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'CRY',
     badgePath: '@assets/generated_images/Crystal_Palace_badge_6fb932f6.png',
     primaryColor: '#1B458F',
-    secondaryColor: '#C4122E'
+    secondaryColor: '#C4122E',
+    strengthRating: 5
   },
   {
     id: 'everton',
@@ -78,7 +87,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'EVE',
     badgePath: '@assets/generated_images/Everton_FC_badge_76fb8550.png',
     primaryColor: '#003399',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 4
   },
   {
     id: 'fulham',
@@ -86,7 +96,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'FUL',
     badgePath: '@assets/generated_images/Fulham_FC_badge_bc1421e1.png',
     primaryColor: '#FFFFFF',
-    secondaryColor: '#000000'
+    secondaryColor: '#000000',
+    strengthRating: 5
   },
   {
     id: 'liverpool',
@@ -94,7 +105,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'LIV',
     badgePath: '@assets/generated_images/Liverpool_FC_badge_db6fd83a.png',
     primaryColor: '#C8102E',
-    secondaryColor: '#F6EB61'
+    secondaryColor: '#F6EB61',
+    strengthRating: 10
   },
   {
     id: 'luton',
@@ -102,7 +114,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'LUT',
     badgePath: '@assets/generated_images/Luton_Town_badge_5f526675.png',
     primaryColor: '#F78F1E',
-    secondaryColor: '#002D5C'
+    secondaryColor: '#002D5C',
+    strengthRating: 2
   },
   {
     id: 'manchester-city',
@@ -110,7 +123,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'MCI',
     badgePath: '@assets/generated_images/Manchester_City_badge_cdd480cd.png',
     primaryColor: '#6CABDD',
-    secondaryColor: '#1C2C5B'
+    secondaryColor: '#1C2C5B',
+    strengthRating: 10
   },
   {
     id: 'manchester-united',
@@ -118,7 +132,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'MUN',
     badgePath: '@assets/generated_images/Manchester_United_badge_f70bef44.png',
     primaryColor: '#DA020E',
-    secondaryColor: '#FBE122'
+    secondaryColor: '#FBE122',
+    strengthRating: 7
   },
   {
     id: 'newcastle',
@@ -126,7 +141,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'NEW',
     badgePath: '@assets/generated_images/Newcastle_United_badge_2613b454.png',
     primaryColor: '#241F20',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 8
   },
   {
     id: 'nottingham-forest',
@@ -134,7 +150,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'NFO',
     badgePath: '@assets/generated_images/Nottingham_Forest_badge_6626154e.png',
     primaryColor: '#DD0000',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 6
   },
   {
     id: 'sheffield-united',
@@ -142,7 +159,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'SHU',
     badgePath: '@assets/generated_images/Sheffield_United_badge_8a8218e2.png',
     primaryColor: '#EE2737',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 3
   },
   {
     id: 'tottenham',
@@ -150,7 +168,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'TOT',
     badgePath: '@assets/generated_images/Tottenham_Hotspur_badge_525f19f9.png',
     primaryColor: '#132257',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 8
   },
   {
     id: 'west-ham',
@@ -158,7 +177,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'WHU',
     badgePath: '@assets/generated_images/West_Ham_United_badge_1af01d20.png',
     primaryColor: '#7A263A',
-    secondaryColor: '#1BB1E7'
+    secondaryColor: '#1BB1E7',
+    strengthRating: 5
   },
   {
     id: 'wolves',
@@ -166,7 +186,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'WOL',
     badgePath: '@assets/generated_images/Wolves_FC_badge_05aea6d1.png',
     primaryColor: '#FDB914',
-    secondaryColor: '#231F20'
+    secondaryColor: '#231F20',
+    strengthRating: 4
   },
   {
     id: 'sunderland',
@@ -174,7 +195,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'SUN',
     badgePath: '/badges/Sunderland_AFC_badge_a1b2c3d4.svg',
     primaryColor: '#DC143C',
-    secondaryColor: '#FFFFFF'
+    secondaryColor: '#FFFFFF',
+    strengthRating: 4
   },
   {
     id: 'leeds-united',
@@ -182,7 +204,8 @@ export const PREMIER_LEAGUE_TEAMS: PremierLeagueTeam[] = [
     shortName: 'LEE',
     badgePath: '/badges/Leeds_United_badge_e5f6g7h8.svg',
     primaryColor: '#1D428A',
-    secondaryColor: '#FFCD00'
+    secondaryColor: '#FFCD00',
+    strengthRating: 5
   }
 ];
 
@@ -260,4 +283,102 @@ export function getPremierLeagueTeamOptions(): Array<{value: string, label: stri
     label: team.name,
     badge: team.badgePath
   }));
+}
+
+/**
+ * Difficulty levels for match predictions
+ */
+export type DifficultyLevel = 'very-easy' | 'easy' | 'medium' | 'hard' | 'very-hard';
+
+export interface MatchDifficulty {
+  level: DifficultyLevel;
+  score: number; // 1-10 scale
+  label: string;
+  color: string; // CSS color class
+  bgColor: string; // Background color class
+}
+
+/**
+ * Calculate prediction difficulty for a match based on team strengths
+ * 
+ * Logic:
+ * - Very Easy (1-2): Clear mismatch (top team vs weak team, difference >= 5)
+ * - Easy (3-4): Strong favorite (difference 3-4)
+ * - Medium (5-6): Fairly balanced or mid-tier teams (difference 1-2)
+ * - Hard (7-8): Evenly matched strong teams (both rated 7+, difference <= 1)
+ * - Very Hard (9-10): Top-tier clash (both rated 8+, difference <= 1)
+ */
+export function calculateMatchDifficulty(homeTeam: string, awayTeam: string): MatchDifficulty {
+  const home = getPremierLeagueTeamByName(homeTeam);
+  const away = getPremierLeagueTeamByName(awayTeam);
+  
+  // Default for non-Premier League teams or unknown teams
+  if (!home || !away) {
+    return {
+      level: 'medium',
+      score: 5,
+      label: 'Medium',
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100'
+    };
+  }
+  
+  const homeStrength = home.strengthRating;
+  const awayStrength = away.strengthRating;
+  const difference = Math.abs(homeStrength - awayStrength);
+  const averageStrength = (homeStrength + awayStrength) / 2;
+  const maxStrength = Math.max(homeStrength, awayStrength);
+  
+  // Very Hard: Top-tier clash (both teams strong and evenly matched)
+  if (averageStrength >= 8 && difference <= 1) {
+    return {
+      level: 'very-hard',
+      score: 9,
+      label: 'Very Hard',
+      color: 'text-red-700',
+      bgColor: 'bg-red-100'
+    };
+  }
+  
+  // Hard: Evenly matched quality teams
+  if (averageStrength >= 7 && difference <= 1) {
+    return {
+      level: 'hard',
+      score: 7,
+      label: 'Hard',
+      color: 'text-orange-600',
+      bgColor: 'bg-orange-100'
+    };
+  }
+  
+  // Very Easy: Clear mismatch
+  if (difference >= 5) {
+    return {
+      level: 'very-easy',
+      score: 2,
+      label: 'Very Easy',
+      color: 'text-green-700',
+      bgColor: 'bg-green-100'
+    };
+  }
+  
+  // Easy: Strong favorite
+  if (difference >= 3) {
+    return {
+      level: 'easy',
+      score: 3,
+      label: 'Easy',
+      color: 'text-green-600',
+      bgColor: 'bg-green-50'
+    };
+  }
+  
+  // Medium: Fairly balanced
+  return {
+    level: 'medium',
+    score: 5,
+    label: 'Medium',
+    color: 'text-yellow-600',
+    bgColor: 'bg-yellow-100'
+  };
 }
