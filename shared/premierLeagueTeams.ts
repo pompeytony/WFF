@@ -326,11 +326,15 @@ export function getTeamStrength(
  * 
  * Logic:
  * - Applies home advantage boost to the home team (+1.2 rating points)
- * - Very Easy (1-2): Clear mismatch (top team vs weak team, difference >= 5)
- * - Easy (3-4): Strong favorite (difference 3-4)
- * - Medium (5-6): Fairly balanced or mid-tier teams (difference 1-2)
- * - Hard (7-8): Evenly matched strong teams (both rated 7+, difference <= 1)
- * - Very Hard (9-10): Top-tier clash (both rated 8+, difference <= 1)
+ * - Very Hard (9-10): Top-tier clash (both rated 8+, base difference <= 1 before home advantage)
+ * - Hard (7-8): Evenly matched strong teams (both rated 7+, base difference <= 1 before home advantage)
+ * - Very Easy (1-2): Clear mismatch (difference >= 5 with home advantage applied)
+ * - Easy (3-4): Strong favorite (difference 3-4 with home advantage applied)
+ * - Medium (5-6): Fairly balanced or mid-tier teams (difference 1-2 with home advantage applied)
+ * 
+ * Note: Hard/Very Hard tiers use base team strength (ignoring home advantage) to identify
+ * evenly matched quality fixtures, while all other tiers factor in home advantage to make
+ * home games slightly easier and away games slightly harder.
  * 
  * @param homeTeam - Home team name
  * @param awayTeam - Away team name
@@ -358,16 +362,17 @@ export function calculateMatchDifficulty(
   const homeStrength = getTeamStrength(homeTeam, customRatings);
   const awayStrength = getTeamStrength(awayTeam, customRatings);
   
-  // Apply home advantage boost to home team
-  const homeStrengthWithAdvantage = homeStrength + HOME_ADVANTAGE;
-  
-  // Calculate difference with home advantage factored in
-  const difference = Math.abs(homeStrengthWithAdvantage - awayStrength);
+  // Calculate base team metrics (without home advantage)
   const averageStrength = (homeStrength + awayStrength) / 2;
   const maxStrength = Math.max(homeStrength, awayStrength);
+  const baseDifference = Math.abs(homeStrength - awayStrength);
   
-  // Very Hard: Top-tier clash (both teams strong and evenly matched)
-  if (averageStrength >= 8 && difference <= 1) {
+  // Apply home advantage boost to home team for difficulty calculation
+  const homeStrengthWithAdvantage = homeStrength + HOME_ADVANTAGE;
+  const difference = Math.abs(homeStrengthWithAdvantage - awayStrength);
+  
+  // Very Hard: Top-tier clash (both teams strong and evenly matched before home advantage)
+  if (averageStrength >= 8 && baseDifference <= 1) {
     return {
       level: 'very-hard',
       score: 9,
@@ -377,8 +382,8 @@ export function calculateMatchDifficulty(
     };
   }
   
-  // Hard: Evenly matched quality teams
-  if (averageStrength >= 7 && difference <= 1) {
+  // Hard: Evenly matched quality teams (check base difference, not boosted)
+  if (averageStrength >= 7 && baseDifference <= 1) {
     return {
       level: 'hard',
       score: 7,
