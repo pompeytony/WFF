@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import TeamDisplay from "@/components/team-display";
+import DifficultyIndicator from "@/components/difficulty-indicator";
 import type { Gameweek } from "@shared/schema";
 
 interface PredictionData {
@@ -162,6 +163,11 @@ const PredictionsOverview = () => {
                 <span className="text-football-navy">
                   {fixtureData.fixture.homeTeam} vs {fixtureData.fixture.awayTeam}
                 </span>
+                <DifficultyIndicator 
+                  homeTeam={fixtureData.fixture.homeTeam} 
+                  awayTeam={fixtureData.fixture.awayTeam} 
+                  size="small"
+                />
                 {fixtureData.fixture.isComplete && (
                   <Badge className="bg-football-green text-white">
                     Final: {fixtureData.fixture.homeScore}-{fixtureData.fixture.awayScore}

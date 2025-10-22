@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import TeamDisplay from "@/components/team-display";
+import DifficultyIndicator from "@/components/difficulty-indicator";
 import type { Gameweek, Fixture, Prediction } from "@shared/schema";
 
 // Helper function for UK timezone display
@@ -295,11 +296,25 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
         </div>
       </div>
 
-      <div className="mb-6 p-4 bg-football-green bg-opacity-10 rounded-lg border border-football-green border-opacity-30">
-        <h3 className="font-semibold text-football-navy mb-2">
-          <i className="fas fa-star mr-2 text-football-gold"></i>Joker Available
-        </h3>
-        <p className="text-sm text-gray-600">Select one match to double your points this week. Choose wisely!</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="p-4 bg-football-green bg-opacity-10 rounded-lg border border-football-green border-opacity-30">
+          <h3 className="font-semibold text-football-navy mb-2">
+            <i className="fas fa-star mr-2 text-football-gold"></i>Joker Available
+          </h3>
+          <p className="text-sm text-gray-600">Select one match to double your points this week. Choose wisely!</p>
+        </div>
+        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h3 className="font-semibold text-football-navy mb-2">
+            <i className="fas fa-chart-line mr-2 text-blue-600"></i>Prediction Difficulty
+          </h3>
+          <div className="flex flex-wrap gap-2 text-xs">
+            <span className="px-2 py-1 rounded-full bg-green-100 text-green-700">Very Easy</span>
+            <span className="px-2 py-1 rounded-full bg-green-50 text-green-600">Easy</span>
+            <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-600">Medium</span>
+            <span className="px-2 py-1 rounded-full bg-orange-100 text-orange-600">Hard</span>
+            <span className="px-2 py-1 rounded-full bg-red-100 text-red-700">Very Hard</span>
+          </div>
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
@@ -328,7 +343,7 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
             }`}>
               {/* Mobile-first responsive layout */}
               <div className="space-y-3">
-                {/* Header with joker and time */}
+                {/* Header with joker, difficulty, and time */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <input
@@ -338,10 +353,17 @@ const PredictionForm = ({ gameweek, fixtures, predictions, playerId }: Predictio
                       onChange={(e) => handleJokerChange(fixture.id, e.target.checked)}
                       className="w-4 h-4 text-football-green"
                       disabled={isDeadlinePassed}
+                      data-testid={`input-joker-${fixture.id}`}
                     />
                     <label className={`text-sm font-medium ${data.isJoker ? 'text-football-gold' : 'text-gray-400'}`}>
                       <i className={data.isJoker ? "fas fa-star" : "far fa-star"}></i>
                     </label>
+                    <DifficultyIndicator 
+                      homeTeam={fixture.homeTeam} 
+                      awayTeam={fixture.awayTeam} 
+                      size="small" 
+                      showLabel={false}
+                    />
                   </div>
                   <div className="text-sm text-gray-500 font-medium">{kickoffTime}</div>
                 </div>

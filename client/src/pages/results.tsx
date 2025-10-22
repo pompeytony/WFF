@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import TeamDisplay from "@/components/team-display";
+import DifficultyIndicator from "@/components/difficulty-indicator";
 import type { Fixture, Gameweek } from "@shared/schema";
 
 // Helper function for UK timezone display
@@ -76,6 +77,11 @@ const Results = () => {
                           <div>{gameweek?.name}</div>
                           <div>{kickoffDate}</div>
                         </div>
+                        <DifficultyIndicator 
+                          homeTeam={fixture.homeTeam} 
+                          awayTeam={fixture.awayTeam} 
+                          size="small"
+                        />
                       </div>
                       
                       <div className="flex items-center space-x-6">
