@@ -299,6 +299,12 @@ export interface MatchDifficulty {
 }
 
 /**
+ * Home advantage boost applied to the home team's strength rating
+ * Typical home advantage in football is worth about 1-1.5 rating points
+ */
+const HOME_ADVANTAGE = 1.2;
+
+/**
  * Get team strength rating from custom ratings map or fallback to default
  */
 export function getTeamStrength(
@@ -319,6 +325,7 @@ export function getTeamStrength(
  * Calculate prediction difficulty for a match based on team strengths
  * 
  * Logic:
+ * - Applies home advantage boost to the home team (+1.2 rating points)
  * - Very Easy (1-2): Clear mismatch (top team vs weak team, difference >= 5)
  * - Easy (3-4): Strong favorite (difference 3-4)
  * - Medium (5-6): Fairly balanced or mid-tier teams (difference 1-2)
@@ -350,7 +357,12 @@ export function calculateMatchDifficulty(
   
   const homeStrength = getTeamStrength(homeTeam, customRatings);
   const awayStrength = getTeamStrength(awayTeam, customRatings);
-  const difference = Math.abs(homeStrength - awayStrength);
+  
+  // Apply home advantage boost to home team
+  const homeStrengthWithAdvantage = homeStrength + HOME_ADVANTAGE;
+  
+  // Calculate difference with home advantage factored in
+  const difference = Math.abs(homeStrengthWithAdvantage - awayStrength);
   const averageStrength = (homeStrength + awayStrength) / 2;
   const maxStrength = Math.max(homeStrength, awayStrength);
   
