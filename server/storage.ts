@@ -9,7 +9,7 @@ import {
   type TeamStrengthRating, type InsertTeamStrengthRating, type UpdateTeamStrengthRating
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, inArray } from "drizzle-orm";
+import { eq, and, inArray, ne } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (mandatory for Replit Auth)
@@ -638,7 +638,75 @@ export class DatabaseStorage implements IStorage {
       .insert(players)
       .values(insertPlayer)
       .returning();
+    
+    // After creating the player, give them catch-up points if the season has started
+    await this.allocateCatchUpPoints(player.id);
+    
     return player;
+  }
+
+  private async allocateCatchUpPoints(newPlayerId: number): Promise<void> {
+    // Get all completed gameweeks
+    const completedGameweeks = await db
+      .select()
+      .from(gameweeks)
+      .where(eq(gameweeks.isComplete, true))
+      .orderBy(gameweeks.id);
+
+    if (completedGameweeks.length === 0) {
+      // No completed gameweeks yet, no catch-up needed
+      return;
+    }
+
+    // Get all players (excluding the newly created one)
+    const allPlayers = await db
+      .select()
+      .from(players)
+      .where(ne(players.id, newPlayerId));
+
+    if (allPlayers.length === 0) {
+      // First player in the league, no catch-up needed
+      return;
+    }
+
+    // Calculate total points for each existing player
+    const playerTotals = await Promise.all(
+      allPlayers.map(async (p) => {
+        const scores = await db
+          .select()
+          .from(weeklyScores)
+          .where(eq(weeklyScores.playerId, p.id));
+        
+        const total = scores.reduce((sum, score) => sum + (score.totalPoints || 0), 0);
+        return { playerId: p.id, totalPoints: total };
+      })
+    );
+
+    // Find the lowest total points
+    const lowestTotal = Math.min(...playerTotals.map(pt => pt.totalPoints));
+
+    if (lowestTotal <= 0) {
+      // Last place has 0 or negative points, no catch-up needed
+      return;
+    }
+
+    // Distribute the catch-up points evenly across all completed gameweeks
+    const pointsPerGameweek = Math.floor(lowestTotal / completedGameweeks.length);
+    const remainder = lowestTotal % completedGameweeks.length;
+
+    // Create weekly score entries for the new player
+    for (let i = 0; i < completedGameweeks.length; i++) {
+      const gameweek = completedGameweeks[i];
+      // Give extra point to first gameweeks to handle remainder
+      const points = pointsPerGameweek + (i < remainder ? 1 : 0);
+      
+      await db.insert(weeklyScores).values({
+        playerId: newPlayerId,
+        gameweekId: gameweek.id,
+        totalPoints: points,
+        isManagerOfWeek: false,
+      });
+    }
   }
 
   async updatePlayer(id: number, updates: Partial<InsertPlayer>): Promise<void> {
