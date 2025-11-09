@@ -309,7 +309,65 @@ export class MemStorage implements IStorage {
     const id = this.currentPlayerId++;
     const newPlayer: Player = { ...player, id, phoneNumber: player.phoneNumber || null, isAdmin: false };
     this.players.set(id, newPlayer);
+    
+    // After creating the player, give them catch-up points if the season has started
+    await this.allocateCatchUpPointsMemory(id);
+    
     return newPlayer;
+  }
+
+  private async allocateCatchUpPointsMemory(newPlayerId: number): Promise<void> {
+    // Get all completed gameweeks
+    const completedGameweeks = Array.from(this.gameweeks.values())
+      .filter(gw => gw.isComplete)
+      .sort((a, b) => a.id - b.id);
+
+    if (completedGameweeks.length === 0) {
+      // No completed gameweeks yet, no catch-up needed
+      return;
+    }
+
+    // Get all players (excluding the newly created one)
+    const allPlayers = Array.from(this.players.values())
+      .filter(p => p.id !== newPlayerId);
+
+    if (allPlayers.length === 0) {
+      // First player in the league, no catch-up needed
+      return;
+    }
+
+    // Calculate total points for each existing player
+    const playerTotals = allPlayers.map(p => {
+      const scores = Array.from(this.weeklyScores.values())
+        .filter(score => score.playerId === p.id);
+      
+      const total = scores.reduce((sum, score) => sum + (score.totalPoints || 0), 0);
+      return { playerId: p.id, totalPoints: total };
+    });
+
+    // Find the lowest total points
+    const lowestTotal = Math.max(0, Math.min(...playerTotals.map(pt => pt.totalPoints)));
+
+    // Distribute the catch-up points evenly across all completed gameweeks
+    // Even if lowestTotal is 0, we still create weekly score entries for consistency
+    const pointsPerGameweek = lowestTotal > 0 ? Math.floor(lowestTotal / completedGameweeks.length) : 0;
+    const remainder = lowestTotal > 0 ? lowestTotal % completedGameweeks.length : 0;
+
+    // Create weekly score entries for the new player
+    for (let i = 0; i < completedGameweeks.length; i++) {
+      const gameweek = completedGameweeks[i];
+      // Give extra point to first gameweeks to handle remainder
+      const points = pointsPerGameweek + (i < remainder ? 1 : 0);
+      
+      const weeklyScore: WeeklyScore = {
+        id: this.currentWeeklyScoreId++,
+        playerId: newPlayerId,
+        gameweekId: gameweek.id,
+        totalPoints: points,
+        isManagerOfWeek: false,
+      };
+      this.weeklyScores.set(`${newPlayerId}-${gameweek.id}`, weeklyScore);
+    }
   }
 
   async updatePlayer(id: number, updates: Partial<InsertPlayer>): Promise<void> {
@@ -683,16 +741,12 @@ export class DatabaseStorage implements IStorage {
     );
 
     // Find the lowest total points
-    const lowestTotal = Math.min(...playerTotals.map(pt => pt.totalPoints));
-
-    if (lowestTotal <= 0) {
-      // Last place has 0 or negative points, no catch-up needed
-      return;
-    }
+    const lowestTotal = Math.max(0, Math.min(...playerTotals.map(pt => pt.totalPoints)));
 
     // Distribute the catch-up points evenly across all completed gameweeks
-    const pointsPerGameweek = Math.floor(lowestTotal / completedGameweeks.length);
-    const remainder = lowestTotal % completedGameweeks.length;
+    // Even if lowestTotal is 0, we still create weekly score entries for consistency
+    const pointsPerGameweek = lowestTotal > 0 ? Math.floor(lowestTotal / completedGameweeks.length) : 0;
+    const remainder = lowestTotal > 0 ? lowestTotal % completedGameweeks.length : 0;
 
     // Create weekly score entries for the new player
     for (let i = 0; i < completedGameweeks.length; i++) {
