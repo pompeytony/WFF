@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Football Prediction League</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    'football-green': '#00FF85',
+                    'football-navy': '#1A202C',
+                    'football-gold': '#FFD700',
+                    'football-gray': '#2D3748'
+                },
+                fontFamily: {
+                    'sans': ['Inter', 'sans-serif'],
+                    'mono': ['Roboto Mono', 'monospace']
+                }
+            }
+        }
+    };
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- @COMPONENT: Header -->
+    <header class="bg-football-navy text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-football-green rounded-lg flex items-center justify-center">
+                        <i class="fas fa-futbol text-football-navy text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-2xl font-bold">Fantasy Football League</h1>
+                        <p class="text-gray-300 text-sm">Gameweek 15 • Premier League</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <p class="text-sm text-gray-300">Welcome back,</p>
+                        <p class="font-semibold" data-bind="user.name">John Smith</p>
+                    </div>
+                    <div class="w-10 h-10 bg-football-gray rounded-full flex items-center justify-center">
+                        <i class="fas fa-user text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- @END_COMPONENT: Header -->
+
+    <!-- @COMPONENT: Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="container mx-auto px-4">
+            <div class="flex space-x-8">
+                <a href="#" class="py-4 px-2 border-b-2 border-football-green text-football-green font-medium">
+                    <i class="fas fa-home mr-2"></i>Dashboard
+                </a>
+                <a href="#" class="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-football-green transition-colors">
+                    <i class="fas fa-table mr-2"></i>League Table
+                </a>
+                <a href="#" class="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-football-green transition-colors">
+                    <i class="fas fa-history mr-2"></i>Results
+                </a>
+                <a href="#" class="py-4 px-2 border-b-2 border-transparent text-gray-500 hover:text-football-green transition-colors">
+                    <i class="fas fa-cog mr-2"></i>Admin
+                </a>
+            </div>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: Navigation -->
+
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <!-- @COMPONENT: PredictionForm -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-bold text-football-navy">
+                            <i class="fas fa-clipboard-list mr-2 text-football-green"></i>
+                            Week 15 Predictions
+                        </h2>
+                        <div class="flex items-center space-x-2">
+                            <div class="text-sm text-gray-500">Deadline:</div>
+                            <div class="bg-red-100 text-red-800 px-3 py-1 rounded-full text-sm font-medium">
+                                <i class="fas fa-clock mr-1"></i>2 hours left
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-6 p-4 bg-football-green bg-opacity-10 rounded-lg border border-football-green border-opacity-30">
+                        <h3 class="font-semibold text-football-navy mb-2">
+                            <i class="fas fa-star mr-2 text-football-gold"></i>Joker Available
+                        </h3>
+                        <p class="text-sm text-gray-600">Select one match to double your points this week. Choose wisely!</p>
+                    </div>
+
+                    <form class="space-y-4">
+                        <!-- @STATE: jokerSelected:string = null -->
+                        <!-- @MAP: fixtures.map(fixture => ( -->
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-football-green transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center space-x-2">
+                                        <input type="radio" name="joker" value="fixture1" class="w-4 h-4 text-football-green" data-event="change:handleJokerSelection">
+                                        <label class="text-sm font-medium text-football-gold">
+                                            <i class="fas fa-star"></i>
+                                        </label>
+                                    </div>
+                                    <div class="text-sm text-gray-500">Sat 14:30</div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="text-right">
+                                            <div class="font-semibold text-football-navy" data-bind="fixture.homeTeam">Arsenal</div>
+                                        </div>
+                                        <!-- Team logo placeholder -->
+                                        <div class="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
+                                            <span class="text-white text-xs font-bold">ARS</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="number" min="0" max="20" class="w-16 h-10 border border-gray-300 rounded-lg text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20" placeholder="0" data-bind="prediction.homeScore">
+                                        <span class="text-gray-400 font-bold">-</span>
+                                        <input type="number" min="0" max="20" class="w-16 h-10 border border-gray-300 rounded-lg text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20" placeholder="0" data-bind="prediction.awayScore">
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                            <span class="text-white text-xs font-bold">CHE</span>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="font-semibold text-football-navy" data-bind="fixture.awayTeam">Chelsea</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-football-green transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center space-x-2">
+                                        <input type="radio" name="joker" value="fixture2" class="w-4 h-4 text-football-green">
+                                        <label class="text-sm font-medium text-gray-400">
+                                            <i class="far fa-star"></i>
+                                        </label>
+                                    </div>
+                                    <div class="text-sm text-gray-500">Sat 17:00</div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="text-right">
+                                            <div class="font-semibold text-football-navy">Liverpool</div>
+                                        </div>
+                                        <div class="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center">
+                                            <span class="text-white text-xs font-bold">LIV</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="number" min="0" max="20" class="w-16 h-10 border border-gray-300 rounded-lg text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20" placeholder="0">
+                                        <span class="text-gray-400 font-bold">-</span>
+                                        <input type="number" min="0" max="20" class="w-16 h-10 border border-gray-300 rounded-lg text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20" placeholder="0">
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-blue-800 rounded-full flex items-center justify-center">
+                                            <span class="text-white text-xs font-bold">MCI</span>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="font-semibold text-football-navy">Man City</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 rounded-lg p-4 border border-gray-200 hover:border-football-green transition-colors">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center space-x-2">
+                                        <input type="radio" name="joker" value="fixture3" class="w-4 h-4 text-football-green">
+                                        <label class="text-sm font-medium text-gray-400">
+                                            <i class="far fa-star"></i>
+                                        </label>
+                                    </div>
+                                    <div class="text-sm text-gray-500">Sun 16:30</div>
+                                </div>
+                                <div class="flex items-center space-x-4">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="text-right">
+                                            <div class="font-semibold text-football-navy">Man United</div>
+                                        </div>
+                                        <div class="w-8 h-8 bg-red-700 rounded-full flex items-center justify-center">
+                                            <span class="text-white text-xs font-bold">MUN</span>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="number" min="0" max="20" class="w-16 h-10 border border-gray-300 rounded-lg text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20" placeholder="0">
+                                        <span class="text-gray-400 font-bold">-</span>
+                                        <input type="number" min="0" max="20" class="w-16 h-10 border border-gray-300 rounded-lg text-center font-mono focus:border-football-green focus:ring-2 focus:ring-football-green focus:ring-opacity-20" placeholder="0">
+                                    </div>
+                                    <div class="flex items-center space-x-3">
+                                        <div class="w-8 h-8 bg-white border-2 border-gray-300 rounded-full flex items-center justify-center">
+                                            <span class="text-gray-700 text-xs font-bold">TOT</span>
+                                        </div>
+                                        <div class="text-left">
+                                            <div class="font-semibold text-football-navy">Tottenham</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP -->
+
+                        <!-- Placeholder for additional fixtures -->
+                        <div class="text-center text-gray-500 py-4">
+                            <i class="fas fa-ellipsis-h"></i>
+                            <p class="text-sm mt-2">7 more fixtures...</p>
+                        </div>
+
+                        <div class="flex items-center justify-between pt-6 border-t">
+                            <div class="text-sm text-gray-500">
+                                <i class="fas fa-info-circle mr-2"></i>
+                                5 points for correct score, 3 points for correct result
+                            </div>
+                            <div class="flex space-x-3">
+                                <button type="button" class="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                                    Save Draft
+                                </button>
+                                <button type="submit" class="px-6 py-2 bg-football-green text-white rounded-lg hover:bg-green-600 transition-colors font-medium" data-event="click:handlePredictionSubmit">
+                                    <i class="fas fa-paper-plane mr-2"></i>Submit Predictions
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: PredictionForm -->
+
+            <!-- @COMPONENT: Sidebar -->
+            <div class="space-y-6">
+                <!-- @COMPONENT: LeagueTable -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-football-navy mb-4">
+                        <i class="fas fa-trophy mr-2 text-football-gold"></i>
+                        League Table
+                    </h3>
+                    <div class="space-y-3">
+                        <!-- @MAP: leagueStandings.map((player, index) => ( -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-football-green text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    1
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-football-navy" data-bind="player.name">John Smith</div>
+                                    <div class="text-sm text-gray-500">Manager of Week 14</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-football-navy font-mono" data-bind="player.totalPoints">247</div>
+                                <div class="text-sm text-football-green">+15</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-football-gray text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    2
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-football-navy">Sarah Johnson</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-football-navy font-mono">235</div>
+                                <div class="text-sm text-gray-500">+8</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="w-8 h-8 bg-football-gray text-white rounded-full flex items-center justify-center font-bold text-sm">
+                                    3
+                                </div>
+                                <div>
+                                    <div class="font-semibold text-football-navy">Mike Wilson</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="font-bold text-football-navy font-mono">222</div>
+                                <div class="text-sm text-gray-500">+12</div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP -->
+
+                        <div class="text-center pt-2">
+                            <button class="text-football-green hover:text-green-600 text-sm font-medium">
+                                View Full Table <i class="fas fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: LeagueTable -->
+
+                <!-- @COMPONENT: WeeklyStats -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-football-navy mb-4">
+                        <i class="fas fa-chart-line mr-2 text-football-green"></i>
+                        Your Stats
+                    </h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="text-center p-4 bg-football-green bg-opacity-10 rounded-lg">
+                            <div class="text-2xl font-bold text-football-navy font-mono" data-bind="stats.totalPoints">247</div>
+                            <div class="text-sm text-gray-600">Total Points</div>
+                        </div>
+                        <div class="text-center p-4 bg-football-gold bg-opacity-10 rounded-lg">
+                            <div class="text-2xl font-bold text-football-navy font-mono" data-bind="stats.weeklyRank">1st</div>
+                            <div class="text-sm text-gray-600">Current Rank</div>
+                        </div>
+                        <div class="text-center p-4 bg-blue-50 rounded-lg">
+                            <div class="text-2xl font-bold text-football-navy font-mono" data-bind="stats.correctScores">8</div>
+                            <div class="text-sm text-gray-600">Correct Scores</div>
+                        </div>
+                        <div class="text-center p-4 bg-green-50 rounded-lg">
+                            <div class="text-2xl font-bold text-football-navy font-mono" data-bind="stats.correctResults">23</div>
+                            <div class="text-sm text-gray-600">Correct Results</div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: WeeklyStats -->
+
+                <!-- @COMPONENT: RecentResults -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-xl font-bold text-football-navy mb-4">
+                        <i class="fas fa-clock mr-2 text-football-green"></i>
+                        Recent Results
+                    </h3>
+                    <div class="space-y-3">
+                        <!-- @MAP: recentResults.map(result => ( -->
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-sm">
+                                    <div class="font-semibold text-football-navy">Arsenal 2-1 Liverpool</div>
+                                    <div class="text-gray-500">Your prediction: 1-1</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="bg-football-green text-white px-2 py-1 rounded text-sm font-medium">
+                                    +3
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center space-x-3">
+                                <div class="text-sm">
+                                    <div class="font-semibold text-football-navy">Chelsea 3-0 Brighton</div>
+                                    <div class="text-gray-500">Your prediction: 3-0</div>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="bg-football-gold text-white px-2 py-1 rounded text-sm font-medium">
+                                    +10
+                                </div>
+                            </div>
+                        </div>
+                        <!-- @END_MAP -->
+
+                        <div class="text-center pt-2">
+                            <button class="text-football-green hover:text-green-600 text-sm font-medium">
+                                View All Results <i class="fas fa-arrow-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: RecentResults -->
+            </div>
+            <!-- @END_COMPONENT: Sidebar -->
+        </div>
+
+        <!-- @COMPONENT: AdminPanel (Hidden by default) -->
+        <div class="mt-12 bg-white rounded-xl shadow-lg p-6" style="display: none;" data-admin-panel="true">
+            <h2 class="text-2xl font-bold text-football-navy mb-6">
+                <i class="fas fa-cog mr-2 text-football-green"></i>
+                Admin Panel
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-football-navy">Fixture Management</h3>
+                    <div class="space-y-3">
+                        <button class="w-full bg-football-green text-white py-3 px-4 rounded-lg hover:bg-green-600 transition-colors" data-event="click:handleAddFixtures">
+                            <i class="fas fa-plus mr-2"></i>Add New Fixtures
+                        </button>
+                        <button class="w-full bg-football-gold text-white py-3 px-4 rounded-lg hover:bg-yellow-600 transition-colors" data-event="click:handleUpdateResults">
+                            <i class="fas fa-edit mr-2"></i>Update Results
+                        </button>
+                        <button class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-colors" data-event="click:handleCalculateScores">
+                            <i class="fas fa-calculator mr-2"></i>Calculate Scores
+                        </button>
+                    </div>
+                </div>
+                <div class="space-y-4">
+                    <h3 class="text-lg font-semibold text-football-navy">League Management</h3>
+                    <div class="space-y-3">
+                        <button class="w-full bg-football-navy text-white py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors" data-event="click:handleManagePlayers">
+                            <i class="fas fa-users mr-2"></i>Manage Players
+                        </button>
+                        <button class="w-full bg-purple-500 text-white py-3 px-4 rounded-lg hover:bg-purple-600 transition-colors" data-event="click:handleGenerateReports">
+                            <i class="fas fa-chart-bar mr-2"></i>Generate Reports
+                        </button>
+                        <button class="w-full bg-red-500 text-white py-3 px-4 rounded-lg hover:bg-red-600 transition-colors" data-event="click:handleResetWeek">
+                            <i class="fas fa-undo mr-2"></i>Reset Week
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AdminPanel -->
+    </main>
+
+    <!-- @COMPONENT: Footer -->
+    <footer class="bg-football-navy text-white mt-12">
+        <div class="container mx-auto px-4 py-8">
+            <div class="text-center">
+                <p class="text-gray-300">
+                    <i class="fas fa-futbol mr-2"></i>
+                    Fantasy Football Prediction League &copy; 2024
+                </p>
+                <p class="text-sm text-gray-400 mt-2">
+                    Built with ❤️ for football fans
+                </p>
+            </div>
+        </div>
+    </footer>
+    <!-- @END_COMPONENT: Footer -->
+
+    <script>
+        // TODO: Implement business logic, API calls, and state management
+        
+        (function() {
+            'use strict';
+            
+            // Handle joker selection
+            const jokerInputs = document.querySelectorAll('input[name="joker"]');
+            jokerInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    // Update visual feedback for joker selection
+                    jokerInputs.forEach(j => {
+                        const star = j.parentElement.querySelector('i');
+                        if (j.checked) {
+                            star.className = 'fas fa-star';
+                            star.style.color = '#FFD700';
+                        } else {
+                            star.className = 'far fa-star';
+                            star.style.color = '#9CA3AF';
+                        }
+                    });
+                });
+            });
+            
+            // Handle form submission
+            const form = document.querySelector('form');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    // TODO: Validate predictions and submit to backend
+                    alert('Predictions submitted successfully!');
+                });
+            }
+            
+            // Handle navigation
+            const navLinks = document.querySelectorAll('nav a');
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    navLinks.forEach(l => l.className = l.className.replace('border-football-green text-football-green', 'border-transparent text-gray-500'));
+                    this.className = this.className.replace('border-transparent text-gray-500', 'border-football-green text-football-green');
+                });
+            });
+            
+            // Simple mobile responsiveness check
+            function handleResize() {
+                const sidebar = document.querySelector('.lg\\:col-span-1');
+                if (window.innerWidth < 1024) {
+                    // Mobile adjustments would go here
+                }
+            }
+            
+            window.addEventListener('resize', handleResize);
+            handleResize();
+        })();
+    </script>
+</body>
+</html>
