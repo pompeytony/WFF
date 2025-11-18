@@ -92,7 +92,8 @@ async function startServer() {
       console.log("✅ Static file serving configured");
     }
 
-    // ALWAYS serve the app on the port specified in the environment variable PORT
+    /*
+// ALWAYS serve the app on the port specified in the environment variable PORT
     // Other ports are firewalled. Default to 5000 if not specified.
     // this serves both the API and the client.
     // It is the only port that is not firewalled.
@@ -133,6 +134,10 @@ async function startServer() {
     process.exit(1);
   }
 }
+*/
 
 // Start the server
-startServer();
+// startServer();
+
+// Export the Express app for Vercel serverless function
+export default app;
