@@ -273,13 +273,16 @@ const Admin = () => {
   const [isAddPredictionOpen, setIsAddPredictionOpen] = useState(false);
 
   // Bulk operations state
-  const [bulkTab, setBulkTab] = useState<"results" | "fixtures" | "players">("results");
+  const [bulkTab, setBulkTab] = useState<"results" | "fixtures" | "players" | "add">("results");
   const [selectedFixtures, setSelectedFixtures] = useState<Set<number>>(new Set());
   const [bulkResultUpdates, setBulkResultUpdates] = useState<{[key: number]: {homeScore: string; awayScore: string}}>({});
   const [selectedFixturesForEdit, setSelectedFixturesForEdit] = useState<Set<number>>(new Set());
   const [bulkFixtureUpdates, setBulkFixtureUpdates] = useState<{[key: number]: {homeTeam: string; awayTeam: string; kickoffTime: string; gameweekId: string}}>({});
   const [selectedPlayers, setSelectedPlayers] = useState<Set<number>>(new Set());
   const [bulkPlayerUpdates, setBulkPlayerUpdates] = useState<{[key: number]: {name: string; email: string; phoneNumber: string}}>({});
+  const [bulkNewFixtures, setBulkNewFixtures] = useState<{homeTeam: string; awayTeam: string; kickoffTime: string; gameweekId: string}[]>([
+    { homeTeam: "", awayTeam: "", kickoffTime: "", gameweekId: "" }
+  ]);
 
   const { data: fixtures = [] } = useQuery<Fixture[]>({
     queryKey: ["/api/fixtures"],
@@ -629,6 +632,33 @@ const Admin = () => {
     onError: (error: any) => {
       toast({
         title: "Error updating players",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkCreateFixturesMutation = useMutation({
+    mutationFn: async () => {
+      const validFixtures = bulkNewFixtures.filter(f => 
+        f.homeTeam && f.awayTeam && f.kickoffTime && f.gameweekId
+      ).map(f => ({
+        ...f,
+        kickoffTime: convertUKTimeToUTC(f.kickoffTime),
+      }));
+      return apiRequest("POST", "/api/admin/bulk-create-fixtures", { fixtures: validFixtures });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: `Created ${data.successCount} fixtures!`,
+        description: data.errors.length > 0 ? `${data.errors.length} errors occurred` : "All fixtures created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
+      setBulkNewFixtures([{ homeTeam: "", awayTeam: "", kickoffTime: "", gameweekId: "" }]);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error creating fixtures",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -1951,6 +1981,13 @@ const Admin = () => {
             >
               Bulk Players
             </button>
+            <button
+              onClick={() => setBulkTab("add")}
+              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "add" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
+              data-testid="tab-bulk-add"
+            >
+              Add Fixtures
+            </button>
           </div>
 
           {bulkTab === "results" && (
@@ -2362,6 +2399,129 @@ const Admin = () => {
               ) : (
                 <p className="text-gray-500 text-center py-8">No players available</p>
               )}
+            </div>
+          )}
+
+          {bulkTab === "add" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Add multiple fixtures at once. Fill in the details and click "Create Fixtures".</p>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left py-2 px-2">Home Team</th>
+                      <th className="text-left py-2 px-2">Away Team</th>
+                      <th className="text-center py-2 px-2">Kickoff (UK Time)</th>
+                      <th className="text-center py-2 px-2">Gameweek</th>
+                      <th className="text-center py-2 px-2 w-12"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkNewFixtures.map((fixture, index) => (
+                      <tr key={index} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-2">
+                          <select
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            value={fixture.homeTeam}
+                            onChange={(e) => {
+                              const updated = [...bulkNewFixtures];
+                              updated[index] = { ...updated[index], homeTeam: e.target.value };
+                              setBulkNewFixtures(updated);
+                            }}
+                            data-testid={`select-bulk-home-${index}`}
+                          >
+                            <option value="">Select team...</option>
+                            {PREMIER_LEAGUE_TEAMS.map((team: string) => (
+                              <option key={team} value={team}>{team}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-2">
+                          <select
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            value={fixture.awayTeam}
+                            onChange={(e) => {
+                              const updated = [...bulkNewFixtures];
+                              updated[index] = { ...updated[index], awayTeam: e.target.value };
+                              setBulkNewFixtures(updated);
+                            }}
+                            data-testid={`select-bulk-away-${index}`}
+                          >
+                            <option value="">Select team...</option>
+                            {PREMIER_LEAGUE_TEAMS.map((team: string) => (
+                              <option key={team} value={team}>{team}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          <input
+                            type="datetime-local"
+                            className="px-2 py-1 border rounded text-sm"
+                            value={fixture.kickoffTime}
+                            onChange={(e) => {
+                              const updated = [...bulkNewFixtures];
+                              updated[index] = { ...updated[index], kickoffTime: e.target.value };
+                              setBulkNewFixtures(updated);
+                            }}
+                            data-testid={`input-bulk-kickoff-${index}`}
+                          />
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          <select
+                            className="px-2 py-1 border rounded text-sm"
+                            value={fixture.gameweekId}
+                            onChange={(e) => {
+                              const updated = [...bulkNewFixtures];
+                              updated[index] = { ...updated[index], gameweekId: e.target.value };
+                              setBulkNewFixtures(updated);
+                            }}
+                            data-testid={`select-bulk-gameweek-${index}`}
+                          >
+                            <option value="">Select...</option>
+                            {gameweeks.map((gw: any) => (
+                              <option key={gw.id} value={gw.id.toString()}>{gw.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          {bulkNewFixtures.length > 1 && (
+                            <button
+                              onClick={() => {
+                                const updated = bulkNewFixtures.filter((_, i) => i !== index);
+                                setBulkNewFixtures(updated);
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                              data-testid={`button-remove-fixture-${index}`}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setBulkNewFixtures([...bulkNewFixtures, { homeTeam: "", awayTeam: "", kickoffTime: "", gameweekId: "" }]);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                  data-testid="button-add-fixture-row"
+                >
+                  + Add Another Fixture
+                </Button>
+                <Button
+                  onClick={() => bulkCreateFixturesMutation.mutate()}
+                  disabled={bulkCreateFixturesMutation.isPending || !bulkNewFixtures.some(f => f.homeTeam && f.awayTeam && f.kickoffTime && f.gameweekId)}
+                  className="flex-1 bg-football-gold hover:bg-yellow-600"
+                  data-testid="button-bulk-create-fixtures"
+                >
+                  {bulkCreateFixturesMutation.isPending ? "Creating..." : `Create ${bulkNewFixtures.filter(f => f.homeTeam && f.awayTeam && f.kickoffTime && f.gameweekId).length} Fixtures`}
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

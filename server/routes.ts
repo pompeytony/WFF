@@ -1265,6 +1265,43 @@ Good luck! ⚽
     }
   });
 
+  // Bulk create fixtures endpoint
+  app.post("/api/admin/bulk-create-fixtures", requireAdmin, async (req: any, res: any) => {
+    try {
+      const { fixtures } = req.body;
+      if (!Array.isArray(fixtures) || fixtures.length === 0) {
+        return res.status(400).json({ error: "Invalid fixtures format" });
+      }
+
+      let successCount = 0;
+      const errors: string[] = [];
+      const created: any[] = [];
+
+      for (const fixture of fixtures) {
+        try {
+          if (!fixture.homeTeam || !fixture.awayTeam || !fixture.kickoffTime || !fixture.gameweekId) {
+            errors.push(`Missing required fields for fixture ${fixture.homeTeam || '?'} vs ${fixture.awayTeam || '?'}`);
+            continue;
+          }
+          const newFixture = await storage.createFixture({
+            homeTeam: fixture.homeTeam,
+            awayTeam: fixture.awayTeam,
+            kickoffTime: new Date(fixture.kickoffTime),
+            gameweekId: parseInt(fixture.gameweekId),
+          });
+          created.push(newFixture);
+          successCount++;
+        } catch (e: any) {
+          errors.push(`${fixture.homeTeam} vs ${fixture.awayTeam}: ${e.message}`);
+        }
+      }
+
+      res.json({ successCount, errors, totalAttempted: fixtures.length, created });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
