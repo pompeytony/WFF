@@ -276,6 +276,10 @@ const Admin = () => {
   const [bulkTab, setBulkTab] = useState<"results" | "fixtures" | "players">("results");
   const [selectedFixtures, setSelectedFixtures] = useState<Set<number>>(new Set());
   const [bulkResultUpdates, setBulkResultUpdates] = useState<{[key: number]: {homeScore: string; awayScore: string}}>({});
+  const [selectedFixturesForEdit, setSelectedFixturesForEdit] = useState<Set<number>>(new Set());
+  const [bulkFixtureUpdates, setBulkFixtureUpdates] = useState<{[key: number]: {homeTeam: string; awayTeam: string; kickoffTime: string; gameweekId: string}}>({});
+  const [selectedPlayers, setSelectedPlayers] = useState<Set<number>>(new Set());
+  const [bulkPlayerUpdates, setBulkPlayerUpdates] = useState<{[key: number]: {name: string; email: string; phoneNumber: string}}>({});
 
   const { data: fixtures = [] } = useQuery<Fixture[]>({
     queryKey: ["/api/fixtures"],
@@ -560,6 +564,71 @@ const Admin = () => {
     onError: (error: any) => {
       toast({
         title: "Error updating results",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkUpdateFixturesMutation = useMutation({
+    mutationFn: async () => {
+      const updates = Array.from(selectedFixturesForEdit).map(fixtureId => {
+        const fixture = fixtures.find((f: any) => f.id === fixtureId);
+        const update = bulkFixtureUpdates[fixtureId] || {};
+        return {
+          fixtureId,
+          homeTeam: update.homeTeam || fixture?.homeTeam || "",
+          awayTeam: update.awayTeam || fixture?.awayTeam || "",
+          kickoffTime: update.kickoffTime ? convertUKTimeToUTC(update.kickoffTime) : fixture?.kickoffTime,
+          gameweekId: parseInt(update.gameweekId || fixture?.gameweekId?.toString() || "0"),
+        };
+      });
+      return apiRequest("POST", "/api/admin/bulk-update-fixtures", { updates });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: `Updated ${data.successCount} fixtures!`,
+        description: data.errors.length > 0 ? `${data.errors.length} errors occurred` : "All fixtures updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
+      setSelectedFixturesForEdit(new Set());
+      setBulkFixtureUpdates({});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating fixtures",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkUpdatePlayersMutation = useMutation({
+    mutationFn: async () => {
+      const updates = Array.from(selectedPlayers).map(playerId => {
+        const player = players.find((p: any) => p.id === playerId);
+        const update = bulkPlayerUpdates[playerId] || {};
+        return {
+          playerId,
+          name: update.name || player?.name || "",
+          email: update.email || player?.email || "",
+          phoneNumber: update.phoneNumber || player?.phoneNumber || "",
+        };
+      });
+      return apiRequest("POST", "/api/admin/bulk-update-players", { updates });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: `Updated ${data.successCount} players!`,
+        description: data.errors.length > 0 ? `${data.errors.length} errors occurred` : "All players updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/players"] });
+      setSelectedPlayers(new Set());
+      setBulkPlayerUpdates({});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating players",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -1993,16 +2062,306 @@ const Admin = () => {
           )}
 
           {bulkTab === "fixtures" && (
-            <div className="text-center py-8 text-gray-600">
-              <p>Bulk fixture editing features coming soon.</p>
-              <p className="text-sm mt-2">Use individual fixture edit for now.</p>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Select fixtures and edit team names, kickoff times, or gameweek assignments.</p>
+              {fixtures.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left py-2 px-2 w-8">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const newSet = new Set(fixtures.map((f: any) => f.id));
+                                  setSelectedFixturesForEdit(newSet);
+                                } else {
+                                  setSelectedFixturesForEdit(new Set());
+                                }
+                              }}
+                              data-testid="checkbox-select-all-fixtures"
+                            />
+                          </th>
+                          <th className="text-left py-2 px-2">Home Team</th>
+                          <th className="text-left py-2 px-2">Away Team</th>
+                          <th className="text-center py-2 px-2">Kickoff</th>
+                          <th className="text-center py-2 px-2">Gameweek</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fixtures.map((fixture: any) => (
+                          <tr key={fixture.id} className="border-b hover:bg-gray-50">
+                            <td className="py-2 px-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedFixturesForEdit.has(fixture.id)}
+                                onChange={(e) => {
+                                  const newSet = new Set(selectedFixturesForEdit);
+                                  if (e.target.checked) {
+                                    newSet.add(fixture.id);
+                                    setBulkFixtureUpdates({
+                                      ...bulkFixtureUpdates,
+                                      [fixture.id]: {
+                                        homeTeam: fixture.homeTeam,
+                                        awayTeam: fixture.awayTeam,
+                                        kickoffTime: convertUTCToUKTime(fixture.kickoffTime),
+                                        gameweekId: fixture.gameweekId?.toString() || "",
+                                      },
+                                    });
+                                  } else {
+                                    newSet.delete(fixture.id);
+                                  }
+                                  setSelectedFixturesForEdit(newSet);
+                                }}
+                                data-testid={`checkbox-fixture-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam}
+                                onChange={(e) => {
+                                  setBulkFixtureUpdates({
+                                    ...bulkFixtureUpdates,
+                                    [fixture.id]: {
+                                      ...bulkFixtureUpdates[fixture.id],
+                                      homeTeam: e.target.value,
+                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
+                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
+                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixturesForEdit.has(fixture.id)}
+                                data-testid={`input-home-team-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam}
+                                onChange={(e) => {
+                                  setBulkFixtureUpdates({
+                                    ...bulkFixtureUpdates,
+                                    [fixture.id]: {
+                                      ...bulkFixtureUpdates[fixture.id],
+                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
+                                      awayTeam: e.target.value,
+                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
+                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixturesForEdit.has(fixture.id)}
+                                data-testid={`input-away-team-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="datetime-local"
+                                className="px-2 py-1 border rounded text-sm"
+                                value={bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime)}
+                                onChange={(e) => {
+                                  setBulkFixtureUpdates({
+                                    ...bulkFixtureUpdates,
+                                    [fixture.id]: {
+                                      ...bulkFixtureUpdates[fixture.id],
+                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
+                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
+                                      kickoffTime: e.target.value,
+                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixturesForEdit.has(fixture.id)}
+                                data-testid={`input-kickoff-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <select
+                                className="px-2 py-1 border rounded text-sm"
+                                value={bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || "")}
+                                onChange={(e) => {
+                                  setBulkFixtureUpdates({
+                                    ...bulkFixtureUpdates,
+                                    [fixture.id]: {
+                                      ...bulkFixtureUpdates[fixture.id],
+                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
+                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
+                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
+                                      gameweekId: e.target.value,
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixturesForEdit.has(fixture.id)}
+                                data-testid={`select-gameweek-${fixture.id}`}
+                              >
+                                <option value="">Select...</option>
+                                {gameweeks.map((gw: any) => (
+                                  <option key={gw.id} value={gw.id.toString()}>{gw.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {selectedFixturesForEdit.size > 0 && (
+                    <Button
+                      onClick={() => bulkUpdateFixturesMutation.mutate()}
+                      disabled={bulkUpdateFixturesMutation.isPending}
+                      className="w-full bg-football-gold hover:bg-yellow-600"
+                      data-testid="button-bulk-save-fixtures"
+                    >
+                      {bulkUpdateFixturesMutation.isPending ? "Updating..." : `Update ${selectedFixturesForEdit.size} Fixtures`}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No fixtures available</p>
+              )}
             </div>
           )}
 
           {bulkTab === "players" && (
-            <div className="text-center py-8 text-gray-600">
-              <p>Bulk player management features coming soon.</p>
-              <p className="text-sm mt-2">Use individual player edit for now.</p>
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Select players and update their details in bulk.</p>
+              {players.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left py-2 px-2 w-8">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const newSet = new Set(players.map((p: any) => p.id));
+                                  setSelectedPlayers(newSet);
+                                } else {
+                                  setSelectedPlayers(new Set());
+                                }
+                              }}
+                              data-testid="checkbox-select-all-players"
+                            />
+                          </th>
+                          <th className="text-left py-2 px-2">Name</th>
+                          <th className="text-left py-2 px-2">Email</th>
+                          <th className="text-left py-2 px-2">Phone</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {players.map((player: any) => (
+                          <tr key={player.id} className="border-b hover:bg-gray-50">
+                            <td className="py-2 px-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedPlayers.has(player.id)}
+                                onChange={(e) => {
+                                  const newSet = new Set(selectedPlayers);
+                                  if (e.target.checked) {
+                                    newSet.add(player.id);
+                                    setBulkPlayerUpdates({
+                                      ...bulkPlayerUpdates,
+                                      [player.id]: {
+                                        name: player.name || "",
+                                        email: player.email || "",
+                                        phoneNumber: player.phoneNumber || "",
+                                      },
+                                    });
+                                  } else {
+                                    newSet.delete(player.id);
+                                  }
+                                  setSelectedPlayers(newSet);
+                                }}
+                                data-testid={`checkbox-player-${player.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkPlayerUpdates[player.id]?.name ?? player.name ?? ""}
+                                onChange={(e) => {
+                                  setBulkPlayerUpdates({
+                                    ...bulkPlayerUpdates,
+                                    [player.id]: {
+                                      ...bulkPlayerUpdates[player.id],
+                                      name: e.target.value,
+                                      email: bulkPlayerUpdates[player.id]?.email ?? player.email ?? "",
+                                      phoneNumber: bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? "",
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedPlayers.has(player.id)}
+                                data-testid={`input-player-name-${player.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="email"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkPlayerUpdates[player.id]?.email ?? player.email ?? ""}
+                                onChange={(e) => {
+                                  setBulkPlayerUpdates({
+                                    ...bulkPlayerUpdates,
+                                    [player.id]: {
+                                      ...bulkPlayerUpdates[player.id],
+                                      name: bulkPlayerUpdates[player.id]?.name ?? player.name ?? "",
+                                      email: e.target.value,
+                                      phoneNumber: bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? "",
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedPlayers.has(player.id)}
+                                data-testid={`input-player-email-${player.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="tel"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? ""}
+                                onChange={(e) => {
+                                  setBulkPlayerUpdates({
+                                    ...bulkPlayerUpdates,
+                                    [player.id]: {
+                                      ...bulkPlayerUpdates[player.id],
+                                      name: bulkPlayerUpdates[player.id]?.name ?? player.name ?? "",
+                                      email: bulkPlayerUpdates[player.id]?.email ?? player.email ?? "",
+                                      phoneNumber: e.target.value,
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedPlayers.has(player.id)}
+                                data-testid={`input-player-phone-${player.id}`}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {selectedPlayers.size > 0 && (
+                    <Button
+                      onClick={() => bulkUpdatePlayersMutation.mutate()}
+                      disabled={bulkUpdatePlayersMutation.isPending}
+                      className="w-full bg-football-gold hover:bg-yellow-600"
+                      data-testid="button-bulk-save-players"
+                    >
+                      {bulkUpdatePlayersMutation.isPending ? "Updating..." : `Update ${selectedPlayers.size} Players`}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No players available</p>
+              )}
             </div>
           )}
         </CardContent>
