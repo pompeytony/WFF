@@ -646,12 +646,13 @@ const Admin = () => {
         ...f,
         kickoffTime: convertUKTimeToUTC(f.kickoffTime),
       }));
-      return apiRequest("POST", "/api/admin/bulk-create-fixtures", { fixtures: validFixtures });
+      const response = await apiRequest("POST", "/api/admin/bulk-create-fixtures", { fixtures: validFixtures });
+      return response.json();
     },
     onSuccess: (data: any) => {
       toast({
         title: `Created ${data.successCount} fixtures!`,
-        description: data.errors.length > 0 ? `${data.errors.length} errors occurred` : "All fixtures created successfully.",
+        description: data.errors?.length > 0 ? `${data.errors.length} errors occurred` : "All fixtures created successfully.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
       setBulkNewFixtures([{ homeTeam: "", awayTeam: "", kickoffTime: "", gameweekId: "" }]);
