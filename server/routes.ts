@@ -457,6 +457,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/fixtures/:id", requireAdmin, async (req, res) => {
+    try {
+      const fixtureId = Number(req.params.id);
+      await storage.deleteFixture(fixtureId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting fixture:", error);
+      res.status(400).json({ error: "Failed to delete fixture" });
+    }
+  });
+
   // Predictions
   app.get("/api/predictions", async (req, res) => {
     const playerId = req.query.playerId;

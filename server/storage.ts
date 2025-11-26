@@ -38,6 +38,7 @@ export interface IStorage {
   createFixture(fixture: InsertFixture): Promise<Fixture>;
   updateFixture(id: number, updateData: Partial<InsertFixture>): Promise<void>;
   updateFixtureResult(id: number, homeScore: number, awayScore: number): Promise<void>;
+  deleteFixture(id: number): Promise<void>;
   
   // Predictions
   getPredictions(): Promise<Prediction[]>;
@@ -468,6 +469,15 @@ export class MemStorage implements IStorage {
     }
   }
 
+  async deleteFixture(id: number): Promise<void> {
+    this.fixtures.delete(id);
+    // Also delete associated predictions
+    const predictionsToDelete = Array.from(this.predictions.entries())
+      .filter(([_, p]) => p.fixtureId === id)
+      .map(([key, _]) => key);
+    predictionsToDelete.forEach(key => this.predictions.delete(key));
+  }
+
   // Predictions
   async getPredictions(): Promise<Prediction[]> {
     return Array.from(this.predictions.values());
@@ -844,6 +854,13 @@ export class DatabaseStorage implements IStorage {
     await db.update(fixtures)
       .set({ homeScore, awayScore, isComplete: true })
       .where(eq(fixtures.id, id));
+  }
+
+  async deleteFixture(id: number): Promise<void> {
+    // First delete associated predictions
+    await db.delete(predictions).where(eq(predictions.fixtureId, id));
+    // Then delete the fixture
+    await db.delete(fixtures).where(eq(fixtures.id, id));
   }
 
   // Predictions

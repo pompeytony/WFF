@@ -606,6 +606,26 @@ const Admin = () => {
     },
   });
 
+  const deleteFixtureMutation = useMutation({
+    mutationFn: async (fixtureId: number) => {
+      return apiRequest("DELETE", `/api/fixtures/${fixtureId}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Fixture deleted",
+        description: "The fixture has been removed successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error deleting fixture",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
   const bulkUpdatePlayersMutation = useMutation({
     mutationFn: async () => {
       const updates = Array.from(selectedPlayers).map(playerId => {
@@ -950,6 +970,7 @@ const Admin = () => {
                           <th className="text-left py-2 px-2">Away Team</th>
                           <th className="text-center py-2 px-2">Kickoff</th>
                           <th className="text-center py-2 px-2">Gameweek</th>
+                          <th className="text-center py-2 px-2 w-16">Delete</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1067,6 +1088,20 @@ const Admin = () => {
                                   <option key={gw.id} value={gw.id.toString()}>{gw.name}</option>
                                 ))}
                               </select>
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <button
+                                onClick={() => {
+                                  if (confirm(`Delete ${fixture.homeTeam} vs ${fixture.awayTeam}?`)) {
+                                    deleteFixtureMutation.mutate(fixture.id);
+                                  }
+                                }}
+                                className="text-red-500 hover:text-red-700 px-2 py-1"
+                                disabled={deleteFixtureMutation.isPending}
+                                data-testid={`button-delete-fixture-${fixture.id}`}
+                              >
+                                🗑️
+                              </button>
                             </td>
                           </tr>
                         ))}
