@@ -1184,6 +1184,87 @@ Good luck! ⚽
     }
   });
 
+  // Bulk operations endpoints
+  app.post("/api/admin/bulk-update-results", requireAdmin, async (req: any, res: any) => {
+    try {
+      const { updates } = req.body;
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ error: "Invalid updates format" });
+      }
+
+      let successCount = 0;
+      const errors: string[] = [];
+
+      for (const { fixtureId, homeScore, awayScore } of updates) {
+        try {
+          await storage.updateFixtureResult(fixtureId, homeScore, awayScore);
+          successCount++;
+        } catch (e: any) {
+          errors.push(`Fixture ${fixtureId}: ${e.message}`);
+        }
+      }
+
+      res.json({ successCount, errors, totalAttempted: updates.length });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/bulk-update-fixtures", requireAdmin, async (req: any, res: any) => {
+    try {
+      const { updates } = req.body;
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ error: "Invalid updates format" });
+      }
+
+      let successCount = 0;
+      const errors: string[] = [];
+
+      for (const update of updates) {
+        try {
+          await storage.updateFixture(update.fixtureId, {
+            homeTeam: update.homeTeam,
+            awayTeam: update.awayTeam,
+            kickoffTime: new Date(update.kickoffTime),
+            gameweekId: update.gameweekId,
+          });
+          successCount++;
+        } catch (e: any) {
+          errors.push(`Fixture ${update.fixtureId}: ${e.message}`);
+        }
+      }
+
+      res.json({ successCount, errors, totalAttempted: updates.length });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/admin/bulk-update-players", requireAdmin, async (req: any, res: any) => {
+    try {
+      const { updates } = req.body;
+      if (!Array.isArray(updates) || updates.length === 0) {
+        return res.status(400).json({ error: "Invalid updates format" });
+      }
+
+      let successCount = 0;
+      const errors: string[] = [];
+
+      for (const { playerId, name, email, phoneNumber } of updates) {
+        try {
+          await storage.updatePlayer(playerId, { name, email, phoneNumber });
+          successCount++;
+        } catch (e: any) {
+          errors.push(`Player ${playerId}: ${e.message}`);
+        }
+      }
+
+      res.json({ successCount, errors, totalAttempted: updates.length });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
@@ -1359,84 +1440,3 @@ async function calculateGameweekScores(gameweekId: number) {
     await storage.updateWeeklyScore(playerId, gameweekId, finalScore, isManager);
   }
 }
-
-// Bulk operations endpoints
-app.post("/api/admin/bulk-update-results", requireAdmin, async (req, res) => {
-  try {
-    const { updates } = req.body; // Array of { fixtureId, homeScore, awayScore }
-    if (!Array.isArray(updates) || updates.length === 0) {
-      return res.status(400).json({ error: "Invalid updates format" });
-    }
-
-    let successCount = 0;
-    const errors: string[] = [];
-
-    for (const { fixtureId, homeScore, awayScore } of updates) {
-      try {
-        await storage.updateFixtureResult(fixtureId, homeScore, awayScore);
-        successCount++;
-      } catch (e: any) {
-        errors.push(`Fixture ${fixtureId}: ${e.message}`);
-      }
-    }
-
-    res.json({ successCount, errors, totalAttempted: updates.length });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/admin/bulk-update-fixtures", requireAdmin, async (req, res) => {
-  try {
-    const { updates } = req.body; // Array of { fixtureId, homeTeam, awayTeam, kickoffTime, gameweekId }
-    if (!Array.isArray(updates) || updates.length === 0) {
-      return res.status(400).json({ error: "Invalid updates format" });
-    }
-
-    let successCount = 0;
-    const errors: string[] = [];
-
-    for (const update of updates) {
-      try {
-        await storage.updateFixture(update.fixtureId, {
-          homeTeam: update.homeTeam,
-          awayTeam: update.awayTeam,
-          kickoffTime: new Date(update.kickoffTime),
-          gameweekId: update.gameweekId,
-        });
-        successCount++;
-      } catch (e: any) {
-        errors.push(`Fixture ${update.fixtureId}: ${e.message}`);
-      }
-    }
-
-    res.json({ successCount, errors, totalAttempted: updates.length });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.post("/api/admin/bulk-update-players", requireAdmin, async (req, res) => {
-  try {
-    const { updates } = req.body; // Array of { playerId, name, email, phoneNumber }
-    if (!Array.isArray(updates) || updates.length === 0) {
-      return res.status(400).json({ error: "Invalid updates format" });
-    }
-
-    let successCount = 0;
-    const errors: string[] = [];
-
-    for (const { playerId, name, email, phoneNumber } of updates) {
-      try {
-        await storage.updatePlayer(playerId, { name, email, phoneNumber });
-        successCount++;
-      } catch (e: any) {
-        errors.push(`Player ${playerId}: ${e.message}`);
-      }
-    }
-
-    res.json({ successCount, errors, totalAttempted: updates.length });
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-});
