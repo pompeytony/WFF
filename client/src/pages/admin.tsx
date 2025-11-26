@@ -953,7 +953,7 @@ const Admin = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {fixtures.map((fixture: any) => (
+                        {[...fixtures].sort((a: any, b: any) => new Date(b.kickoffTime).getTime() - new Date(a.kickoffTime).getTime()).map((fixture: any) => (
                           <tr key={fixture.id} className="border-b hover:bg-gray-50">
                             <td className="py-2 px-2">
                               <input
