@@ -272,6 +272,11 @@ const Admin = () => {
   const [addingPrediction, setAddingPrediction] = useState<any>(null);
   const [isAddPredictionOpen, setIsAddPredictionOpen] = useState(false);
 
+  // Bulk operations state
+  const [bulkTab, setBulkTab] = useState<"results" | "fixtures" | "players">("results");
+  const [selectedFixtures, setSelectedFixtures] = useState<Set<number>>(new Set());
+  const [bulkResultUpdates, setBulkResultUpdates] = useState<{[key: number]: {homeScore: string; awayScore: string}}>({});
+
   const { data: fixtures = [] } = useQuery<Fixture[]>({
     queryKey: ["/api/fixtures"],
   });
@@ -527,6 +532,34 @@ const Admin = () => {
     onError: (error: any) => {
       toast({
         title: "Error adding prediction",
+        description: error.message || "Please try again",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const bulkUpdateResultsMutation = useMutation({
+    mutationFn: async () => {
+      const updates = Array.from(selectedFixtures).map(fixtureId => ({
+        fixtureId,
+        homeScore: parseInt(bulkResultUpdates[fixtureId]?.homeScore || "0"),
+        awayScore: parseInt(bulkResultUpdates[fixtureId]?.awayScore || "0"),
+      }));
+      return apiRequest("POST", "/api/admin/bulk-update-results", { updates });
+    },
+    onSuccess: (data: any) => {
+      toast({
+        title: `Updated ${data.successCount} results!`,
+        description: data.errors.length > 0 ? `${data.errors.length} errors occurred` : "All results updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/fixtures"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/weekly-scores"] });
+      setSelectedFixtures(new Set());
+      setBulkResultUpdates({});
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error updating results",
         description: error.message || "Please try again",
         variant: "destructive",
       });
@@ -1817,6 +1850,163 @@ const Admin = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Bulk Operations */}
+      <Card className="mt-8">
+        <CardHeader>
+          <CardTitle className="text-football-navy">
+            <i className="fas fa-tasks mr-2 text-football-blue"></i>
+            Bulk Operations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 flex gap-2 border-b">
+            <button
+              onClick={() => setBulkTab("results")}
+              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "results" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
+              data-testid="tab-bulk-results"
+            >
+              Bulk Results
+            </button>
+            <button
+              onClick={() => setBulkTab("fixtures")}
+              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "fixtures" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
+              data-testid="tab-bulk-fixtures"
+            >
+              Bulk Fixtures
+            </button>
+            <button
+              onClick={() => setBulkTab("players")}
+              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "players" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
+              data-testid="tab-bulk-players"
+            >
+              Bulk Players
+            </button>
+          </div>
+
+          {bulkTab === "results" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Select fixtures and enter scores to update multiple results at once.</p>
+              {fixtures.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left py-2 px-2 w-8">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const newSet = new Set(fixtures.map(f => f.id));
+                                  setSelectedFixtures(newSet);
+                                } else {
+                                  setSelectedFixtures(new Set());
+                                }
+                              }}
+                              data-testid="checkbox-select-all-results"
+                            />
+                          </th>
+                          <th className="text-left py-2 px-2">Match</th>
+                          <th className="text-center py-2 px-2">Home Score</th>
+                          <th className="text-center py-2 px-2">Away Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fixtures.map((fixture: any) => (
+                          <tr key={fixture.id} className="border-b hover:bg-gray-50">
+                            <td className="py-2 px-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedFixtures.has(fixture.id)}
+                                onChange={(e) => {
+                                  const newSet = new Set(selectedFixtures);
+                                  if (e.target.checked) {
+                                    newSet.add(fixture.id);
+                                  } else {
+                                    newSet.delete(fixture.id);
+                                  }
+                                  setSelectedFixtures(newSet);
+                                }}
+                                data-testid={`checkbox-result-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</td>
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                className="w-16 px-2 py-1 border rounded text-center"
+                                value={bulkResultUpdates[fixture.id]?.homeScore || ""}
+                                onChange={(e) => {
+                                  setBulkResultUpdates({
+                                    ...bulkResultUpdates,
+                                    [fixture.id]: {
+                                      ...bulkResultUpdates[fixture.id],
+                                      homeScore: e.target.value,
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixtures.has(fixture.id)}
+                                data-testid={`input-home-score-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                className="w-16 px-2 py-1 border rounded text-center"
+                                value={bulkResultUpdates[fixture.id]?.awayScore || ""}
+                                onChange={(e) => {
+                                  setBulkResultUpdates({
+                                    ...bulkResultUpdates,
+                                    [fixture.id]: {
+                                      ...bulkResultUpdates[fixture.id],
+                                      awayScore: e.target.value,
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixtures.has(fixture.id)}
+                                data-testid={`input-away-score-${fixture.id}`}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {selectedFixtures.size > 0 && (
+                    <Button
+                      onClick={() => bulkUpdateResultsMutation.mutate()}
+                      disabled={bulkUpdateResultsMutation.isPending}
+                      className="w-full bg-football-gold hover:bg-yellow-600"
+                      data-testid="button-bulk-save-results"
+                    >
+                      {bulkUpdateResultsMutation.isPending ? "Updating..." : `Update ${selectedFixtures.size} Results`}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No fixtures available</p>
+              )}
+            </div>
+          )}
+
+          {bulkTab === "fixtures" && (
+            <div className="text-center py-8 text-gray-600">
+              <p>Bulk fixture editing features coming soon.</p>
+              <p className="text-sm mt-2">Use individual fixture edit for now.</p>
+            </div>
+          )}
+
+          {bulkTab === "players" && (
+            <div className="text-center py-8 text-gray-600">
+              <p>Bulk player management features coming soon.</p>
+              <p className="text-sm mt-2">Use individual player edit for now.</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Team Strength Ratings Management */}
       <Card className="mt-8">
