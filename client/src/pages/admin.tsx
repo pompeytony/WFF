@@ -2431,8 +2431,8 @@ const Admin = () => {
                             data-testid={`select-bulk-home-${index}`}
                           >
                             <option value="">Select team...</option>
-                            {PREMIER_LEAGUE_TEAMS.map((team: string) => (
-                              <option key={team} value={team}>{team}</option>
+                            {PREMIER_LEAGUE_TEAMS.map((team) => (
+                              <option key={team.id} value={team.name}>{team.name}</option>
                             ))}
                           </select>
                         </td>
@@ -2448,8 +2448,8 @@ const Admin = () => {
                             data-testid={`select-bulk-away-${index}`}
                           >
                             <option value="">Select team...</option>
-                            {PREMIER_LEAGUE_TEAMS.map((team: string) => (
-                              <option key={team} value={team}>{team}</option>
+                            {PREMIER_LEAGUE_TEAMS.map((team) => (
+                              <option key={team.id} value={team.name}>{team.name}</option>
                             ))}
                           </select>
                         </td>
