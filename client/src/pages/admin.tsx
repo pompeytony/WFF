@@ -775,6 +775,583 @@ const Admin = () => {
         <p className="text-gray-600">Manage fixtures, update results, and calculate scores</p>
       </div>
 
+      {/* Bulk Operations - Moved to top */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle className="text-football-navy">
+            <i className="fas fa-tasks mr-2 text-football-blue"></i>
+            Bulk Operations
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-6 flex gap-2 border-b">
+            <button
+              onClick={() => setBulkTab("results")}
+              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "results" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
+              data-testid="tab-bulk-results"
+            >
+              Bulk Results
+            </button>
+            <button
+              onClick={() => setBulkTab("fixtures")}
+              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "fixtures" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
+              data-testid="tab-bulk-fixtures"
+            >
+              Bulk Fixtures
+            </button>
+            <button
+              onClick={() => setBulkTab("players")}
+              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "players" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
+              data-testid="tab-bulk-players"
+            >
+              Bulk Players
+            </button>
+            <button
+              onClick={() => setBulkTab("add")}
+              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "add" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
+              data-testid="tab-bulk-add"
+            >
+              Add Fixtures
+            </button>
+          </div>
+
+          {bulkTab === "results" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Select fixtures and enter scores to update multiple results at once.</p>
+              {fixtures.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left py-2 px-2 w-8">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const newSet = new Set(fixtures.map(f => f.id));
+                                  setSelectedFixtures(newSet);
+                                } else {
+                                  setSelectedFixtures(new Set());
+                                }
+                              }}
+                              data-testid="checkbox-select-all-results"
+                            />
+                          </th>
+                          <th className="text-left py-2 px-2">Match</th>
+                          <th className="text-center py-2 px-2">Home Score</th>
+                          <th className="text-center py-2 px-2">Away Score</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fixtures.map((fixture: any) => (
+                          <tr key={fixture.id} className="border-b hover:bg-gray-50">
+                            <td className="py-2 px-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedFixtures.has(fixture.id)}
+                                onChange={(e) => {
+                                  const newSet = new Set(selectedFixtures);
+                                  if (e.target.checked) {
+                                    newSet.add(fixture.id);
+                                  } else {
+                                    newSet.delete(fixture.id);
+                                  }
+                                  setSelectedFixtures(newSet);
+                                }}
+                                data-testid={`checkbox-result-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</td>
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                className="w-16 px-2 py-1 border rounded text-center"
+                                value={bulkResultUpdates[fixture.id]?.homeScore || ""}
+                                onChange={(e) => {
+                                  setBulkResultUpdates({
+                                    ...bulkResultUpdates,
+                                    [fixture.id]: {
+                                      ...bulkResultUpdates[fixture.id],
+                                      homeScore: e.target.value,
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixtures.has(fixture.id)}
+                                data-testid={`input-home-score-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="number"
+                                min="0"
+                                className="w-16 px-2 py-1 border rounded text-center"
+                                value={bulkResultUpdates[fixture.id]?.awayScore || ""}
+                                onChange={(e) => {
+                                  setBulkResultUpdates({
+                                    ...bulkResultUpdates,
+                                    [fixture.id]: {
+                                      ...bulkResultUpdates[fixture.id],
+                                      awayScore: e.target.value,
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixtures.has(fixture.id)}
+                                data-testid={`input-away-score-${fixture.id}`}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {selectedFixtures.size > 0 && (
+                    <Button
+                      onClick={() => bulkUpdateResultsMutation.mutate()}
+                      disabled={bulkUpdateResultsMutation.isPending}
+                      className="w-full bg-football-gold hover:bg-yellow-600"
+                      data-testid="button-bulk-save-results"
+                    >
+                      {bulkUpdateResultsMutation.isPending ? "Updating..." : `Update ${selectedFixtures.size} Results`}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No fixtures available</p>
+              )}
+            </div>
+          )}
+
+          {bulkTab === "fixtures" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Select fixtures and edit team names, kickoff times, or gameweek assignments.</p>
+              {fixtures.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left py-2 px-2 w-8">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const newSet = new Set(fixtures.map((f: any) => f.id));
+                                  setSelectedFixturesForEdit(newSet);
+                                } else {
+                                  setSelectedFixturesForEdit(new Set());
+                                }
+                              }}
+                              data-testid="checkbox-select-all-fixtures"
+                            />
+                          </th>
+                          <th className="text-left py-2 px-2">Home Team</th>
+                          <th className="text-left py-2 px-2">Away Team</th>
+                          <th className="text-center py-2 px-2">Kickoff</th>
+                          <th className="text-center py-2 px-2">Gameweek</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {fixtures.map((fixture: any) => (
+                          <tr key={fixture.id} className="border-b hover:bg-gray-50">
+                            <td className="py-2 px-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedFixturesForEdit.has(fixture.id)}
+                                onChange={(e) => {
+                                  const newSet = new Set(selectedFixturesForEdit);
+                                  if (e.target.checked) {
+                                    newSet.add(fixture.id);
+                                    setBulkFixtureUpdates({
+                                      ...bulkFixtureUpdates,
+                                      [fixture.id]: {
+                                        homeTeam: fixture.homeTeam,
+                                        awayTeam: fixture.awayTeam,
+                                        kickoffTime: convertUTCToUKTime(fixture.kickoffTime),
+                                        gameweekId: fixture.gameweekId?.toString() || "",
+                                      },
+                                    });
+                                  } else {
+                                    newSet.delete(fixture.id);
+                                  }
+                                  setSelectedFixturesForEdit(newSet);
+                                }}
+                                data-testid={`checkbox-fixture-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam}
+                                onChange={(e) => {
+                                  setBulkFixtureUpdates({
+                                    ...bulkFixtureUpdates,
+                                    [fixture.id]: {
+                                      ...bulkFixtureUpdates[fixture.id],
+                                      homeTeam: e.target.value,
+                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
+                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
+                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixturesForEdit.has(fixture.id)}
+                                data-testid={`input-home-team-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam}
+                                onChange={(e) => {
+                                  setBulkFixtureUpdates({
+                                    ...bulkFixtureUpdates,
+                                    [fixture.id]: {
+                                      ...bulkFixtureUpdates[fixture.id],
+                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
+                                      awayTeam: e.target.value,
+                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
+                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixturesForEdit.has(fixture.id)}
+                                data-testid={`input-away-team-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <input
+                                type="datetime-local"
+                                className="px-2 py-1 border rounded text-sm"
+                                value={bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime)}
+                                onChange={(e) => {
+                                  setBulkFixtureUpdates({
+                                    ...bulkFixtureUpdates,
+                                    [fixture.id]: {
+                                      ...bulkFixtureUpdates[fixture.id],
+                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
+                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
+                                      kickoffTime: e.target.value,
+                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixturesForEdit.has(fixture.id)}
+                                data-testid={`input-kickoff-${fixture.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2 text-center">
+                              <select
+                                className="px-2 py-1 border rounded text-sm"
+                                value={bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || "")}
+                                onChange={(e) => {
+                                  setBulkFixtureUpdates({
+                                    ...bulkFixtureUpdates,
+                                    [fixture.id]: {
+                                      ...bulkFixtureUpdates[fixture.id],
+                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
+                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
+                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
+                                      gameweekId: e.target.value,
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedFixturesForEdit.has(fixture.id)}
+                                data-testid={`select-gameweek-${fixture.id}`}
+                              >
+                                <option value="">Select...</option>
+                                {gameweeks.map((gw: any) => (
+                                  <option key={gw.id} value={gw.id.toString()}>{gw.name}</option>
+                                ))}
+                              </select>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {selectedFixturesForEdit.size > 0 && (
+                    <Button
+                      onClick={() => bulkUpdateFixturesMutation.mutate()}
+                      disabled={bulkUpdateFixturesMutation.isPending}
+                      className="w-full bg-football-gold hover:bg-yellow-600"
+                      data-testid="button-bulk-save-fixtures"
+                    >
+                      {bulkUpdateFixturesMutation.isPending ? "Updating..." : `Update ${selectedFixturesForEdit.size} Fixtures`}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No fixtures available</p>
+              )}
+            </div>
+          )}
+
+          {bulkTab === "players" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Select players and update their details in bulk.</p>
+              {players.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-sm">
+                      <thead>
+                        <tr className="border-b bg-gray-50">
+                          <th className="text-left py-2 px-2 w-8">
+                            <input
+                              type="checkbox"
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  const newSet = new Set(players.map((p: any) => p.id));
+                                  setSelectedPlayers(newSet);
+                                } else {
+                                  setSelectedPlayers(new Set());
+                                }
+                              }}
+                              data-testid="checkbox-select-all-players"
+                            />
+                          </th>
+                          <th className="text-left py-2 px-2">Name</th>
+                          <th className="text-left py-2 px-2">Email</th>
+                          <th className="text-left py-2 px-2">Phone</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {players.map((player: any) => (
+                          <tr key={player.id} className="border-b hover:bg-gray-50">
+                            <td className="py-2 px-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedPlayers.has(player.id)}
+                                onChange={(e) => {
+                                  const newSet = new Set(selectedPlayers);
+                                  if (e.target.checked) {
+                                    newSet.add(player.id);
+                                    setBulkPlayerUpdates({
+                                      ...bulkPlayerUpdates,
+                                      [player.id]: {
+                                        name: player.name || "",
+                                        email: player.email || "",
+                                        phoneNumber: player.phoneNumber || "",
+                                      },
+                                    });
+                                  } else {
+                                    newSet.delete(player.id);
+                                  }
+                                  setSelectedPlayers(newSet);
+                                }}
+                                data-testid={`checkbox-player-${player.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkPlayerUpdates[player.id]?.name ?? player.name ?? ""}
+                                onChange={(e) => {
+                                  setBulkPlayerUpdates({
+                                    ...bulkPlayerUpdates,
+                                    [player.id]: {
+                                      ...bulkPlayerUpdates[player.id],
+                                      name: e.target.value,
+                                      email: bulkPlayerUpdates[player.id]?.email ?? player.email ?? "",
+                                      phoneNumber: bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? "",
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedPlayers.has(player.id)}
+                                data-testid={`input-player-name-${player.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="email"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkPlayerUpdates[player.id]?.email ?? player.email ?? ""}
+                                onChange={(e) => {
+                                  setBulkPlayerUpdates({
+                                    ...bulkPlayerUpdates,
+                                    [player.id]: {
+                                      ...bulkPlayerUpdates[player.id],
+                                      name: bulkPlayerUpdates[player.id]?.name ?? player.name ?? "",
+                                      email: e.target.value,
+                                      phoneNumber: bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? "",
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedPlayers.has(player.id)}
+                                data-testid={`input-player-email-${player.id}`}
+                              />
+                            </td>
+                            <td className="py-2 px-2">
+                              <input
+                                type="tel"
+                                className="w-full px-2 py-1 border rounded text-sm"
+                                value={bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? ""}
+                                onChange={(e) => {
+                                  setBulkPlayerUpdates({
+                                    ...bulkPlayerUpdates,
+                                    [player.id]: {
+                                      ...bulkPlayerUpdates[player.id],
+                                      name: bulkPlayerUpdates[player.id]?.name ?? player.name ?? "",
+                                      email: bulkPlayerUpdates[player.id]?.email ?? player.email ?? "",
+                                      phoneNumber: e.target.value,
+                                    },
+                                  });
+                                }}
+                                disabled={!selectedPlayers.has(player.id)}
+                                data-testid={`input-player-phone-${player.id}`}
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {selectedPlayers.size > 0 && (
+                    <Button
+                      onClick={() => bulkUpdatePlayersMutation.mutate()}
+                      disabled={bulkUpdatePlayersMutation.isPending}
+                      className="w-full bg-football-gold hover:bg-yellow-600"
+                      data-testid="button-bulk-save-players"
+                    >
+                      {bulkUpdatePlayersMutation.isPending ? "Updating..." : `Update ${selectedPlayers.size} Players`}
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <p className="text-gray-500 text-center py-8">No players available</p>
+              )}
+            </div>
+          )}
+
+          {bulkTab === "add" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">Add multiple fixtures at once by filling in the rows below.</p>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b bg-gray-50">
+                      <th className="text-left py-2 px-2">Home Team</th>
+                      <th className="text-left py-2 px-2">Away Team</th>
+                      <th className="text-center py-2 px-2">Kickoff (UK Time)</th>
+                      <th className="text-center py-2 px-2">Gameweek</th>
+                      <th className="text-center py-2 px-2 w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {bulkNewFixtures.map((fixture, index) => (
+                      <tr key={index} className="border-b hover:bg-gray-50">
+                        <td className="py-2 px-2">
+                          <select
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            value={fixture.homeTeam}
+                            onChange={(e) => {
+                              const updated = [...bulkNewFixtures];
+                              updated[index] = { ...updated[index], homeTeam: e.target.value };
+                              setBulkNewFixtures(updated);
+                            }}
+                            data-testid={`select-bulk-home-team-${index}`}
+                          >
+                            <option value="">Select home team...</option>
+                            {PREMIER_LEAGUE_TEAMS.map((team) => (
+                              <option key={team.id} value={team.name}>{team.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-2">
+                          <select
+                            className="w-full px-2 py-1 border rounded text-sm"
+                            value={fixture.awayTeam}
+                            onChange={(e) => {
+                              const updated = [...bulkNewFixtures];
+                              updated[index] = { ...updated[index], awayTeam: e.target.value };
+                              setBulkNewFixtures(updated);
+                            }}
+                            data-testid={`select-bulk-away-team-${index}`}
+                          >
+                            <option value="">Select away team...</option>
+                            {PREMIER_LEAGUE_TEAMS.map((team) => (
+                              <option key={team.id} value={team.name}>{team.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          <input
+                            type="datetime-local"
+                            className="px-2 py-1 border rounded text-sm"
+                            value={fixture.kickoffTime}
+                            onChange={(e) => {
+                              const updated = [...bulkNewFixtures];
+                              updated[index] = { ...updated[index], kickoffTime: e.target.value };
+                              setBulkNewFixtures(updated);
+                            }}
+                            data-testid={`input-bulk-kickoff-${index}`}
+                          />
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          <select
+                            className="px-2 py-1 border rounded text-sm"
+                            value={fixture.gameweekId}
+                            onChange={(e) => {
+                              const updated = [...bulkNewFixtures];
+                              updated[index] = { ...updated[index], gameweekId: e.target.value };
+                              setBulkNewFixtures(updated);
+                            }}
+                            data-testid={`select-bulk-gameweek-${index}`}
+                          >
+                            <option value="">Select...</option>
+                            {gameweeks.map((gw: any) => (
+                              <option key={gw.id} value={gw.id.toString()}>{gw.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-2 px-2 text-center">
+                          {bulkNewFixtures.length > 1 && (
+                            <button
+                              onClick={() => {
+                                const updated = bulkNewFixtures.filter((_, i) => i !== index);
+                                setBulkNewFixtures(updated);
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                              data-testid={`button-remove-fixture-${index}`}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => {
+                    setBulkNewFixtures([...bulkNewFixtures, { homeTeam: "", awayTeam: "", kickoffTime: "", gameweekId: "" }]);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                  data-testid="button-add-fixture-row"
+                >
+                  + Add Another Fixture
+                </Button>
+                <Button
+                  onClick={() => bulkCreateFixturesMutation.mutate()}
+                  disabled={bulkCreateFixturesMutation.isPending || !bulkNewFixtures.some(f => f.homeTeam && f.awayTeam && f.kickoffTime && f.gameweekId)}
+                  className="flex-1 bg-football-gold hover:bg-yellow-600"
+                  data-testid="button-bulk-create-fixtures"
+                >
+                  {bulkCreateFixturesMutation.isPending ? "Creating..." : `Create ${bulkNewFixtures.filter(f => f.homeTeam && f.awayTeam && f.kickoffTime && f.gameweekId).length} Fixtures`}
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Fixture Management */}
         <Card>
@@ -1950,583 +2527,6 @@ const Admin = () => {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Bulk Operations */}
-      <Card className="mt-8">
-        <CardHeader>
-          <CardTitle className="text-football-navy">
-            <i className="fas fa-tasks mr-2 text-football-blue"></i>
-            Bulk Operations
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6 flex gap-2 border-b">
-            <button
-              onClick={() => setBulkTab("results")}
-              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "results" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
-              data-testid="tab-bulk-results"
-            >
-              Bulk Results
-            </button>
-            <button
-              onClick={() => setBulkTab("fixtures")}
-              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "fixtures" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
-              data-testid="tab-bulk-fixtures"
-            >
-              Bulk Fixtures
-            </button>
-            <button
-              onClick={() => setBulkTab("players")}
-              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "players" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
-              data-testid="tab-bulk-players"
-            >
-              Bulk Players
-            </button>
-            <button
-              onClick={() => setBulkTab("add")}
-              className={`pb-3 px-4 font-medium text-sm ${bulkTab === "add" ? "border-b-2 border-football-blue text-football-blue" : "text-gray-600"}`}
-              data-testid="tab-bulk-add"
-            >
-              Add Fixtures
-            </button>
-          </div>
-
-          {bulkTab === "results" && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">Select fixtures and enter scores to update multiple results at once.</p>
-              {fixtures.length > 0 ? (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b bg-gray-50">
-                          <th className="text-left py-2 px-2 w-8">
-                            <input
-                              type="checkbox"
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  const newSet = new Set(fixtures.map(f => f.id));
-                                  setSelectedFixtures(newSet);
-                                } else {
-                                  setSelectedFixtures(new Set());
-                                }
-                              }}
-                              data-testid="checkbox-select-all-results"
-                            />
-                          </th>
-                          <th className="text-left py-2 px-2">Match</th>
-                          <th className="text-center py-2 px-2">Home Score</th>
-                          <th className="text-center py-2 px-2">Away Score</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {fixtures.map((fixture: any) => (
-                          <tr key={fixture.id} className="border-b hover:bg-gray-50">
-                            <td className="py-2 px-2">
-                              <input
-                                type="checkbox"
-                                checked={selectedFixtures.has(fixture.id)}
-                                onChange={(e) => {
-                                  const newSet = new Set(selectedFixtures);
-                                  if (e.target.checked) {
-                                    newSet.add(fixture.id);
-                                  } else {
-                                    newSet.delete(fixture.id);
-                                  }
-                                  setSelectedFixtures(newSet);
-                                }}
-                                data-testid={`checkbox-result-${fixture.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2 font-medium">{fixture.homeTeam} vs {fixture.awayTeam}</td>
-                            <td className="py-2 px-2 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                className="w-16 px-2 py-1 border rounded text-center"
-                                value={bulkResultUpdates[fixture.id]?.homeScore || ""}
-                                onChange={(e) => {
-                                  setBulkResultUpdates({
-                                    ...bulkResultUpdates,
-                                    [fixture.id]: {
-                                      ...bulkResultUpdates[fixture.id],
-                                      homeScore: e.target.value,
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedFixtures.has(fixture.id)}
-                                data-testid={`input-home-score-${fixture.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2 text-center">
-                              <input
-                                type="number"
-                                min="0"
-                                className="w-16 px-2 py-1 border rounded text-center"
-                                value={bulkResultUpdates[fixture.id]?.awayScore || ""}
-                                onChange={(e) => {
-                                  setBulkResultUpdates({
-                                    ...bulkResultUpdates,
-                                    [fixture.id]: {
-                                      ...bulkResultUpdates[fixture.id],
-                                      awayScore: e.target.value,
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedFixtures.has(fixture.id)}
-                                data-testid={`input-away-score-${fixture.id}`}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {selectedFixtures.size > 0 && (
-                    <Button
-                      onClick={() => bulkUpdateResultsMutation.mutate()}
-                      disabled={bulkUpdateResultsMutation.isPending}
-                      className="w-full bg-football-gold hover:bg-yellow-600"
-                      data-testid="button-bulk-save-results"
-                    >
-                      {bulkUpdateResultsMutation.isPending ? "Updating..." : `Update ${selectedFixtures.size} Results`}
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No fixtures available</p>
-              )}
-            </div>
-          )}
-
-          {bulkTab === "fixtures" && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">Select fixtures and edit team names, kickoff times, or gameweek assignments.</p>
-              {fixtures.length > 0 ? (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b bg-gray-50">
-                          <th className="text-left py-2 px-2 w-8">
-                            <input
-                              type="checkbox"
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  const newSet = new Set(fixtures.map((f: any) => f.id));
-                                  setSelectedFixturesForEdit(newSet);
-                                } else {
-                                  setSelectedFixturesForEdit(new Set());
-                                }
-                              }}
-                              data-testid="checkbox-select-all-fixtures"
-                            />
-                          </th>
-                          <th className="text-left py-2 px-2">Home Team</th>
-                          <th className="text-left py-2 px-2">Away Team</th>
-                          <th className="text-center py-2 px-2">Kickoff</th>
-                          <th className="text-center py-2 px-2">Gameweek</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {fixtures.map((fixture: any) => (
-                          <tr key={fixture.id} className="border-b hover:bg-gray-50">
-                            <td className="py-2 px-2">
-                              <input
-                                type="checkbox"
-                                checked={selectedFixturesForEdit.has(fixture.id)}
-                                onChange={(e) => {
-                                  const newSet = new Set(selectedFixturesForEdit);
-                                  if (e.target.checked) {
-                                    newSet.add(fixture.id);
-                                    setBulkFixtureUpdates({
-                                      ...bulkFixtureUpdates,
-                                      [fixture.id]: {
-                                        homeTeam: fixture.homeTeam,
-                                        awayTeam: fixture.awayTeam,
-                                        kickoffTime: convertUTCToUKTime(fixture.kickoffTime),
-                                        gameweekId: fixture.gameweekId?.toString() || "",
-                                      },
-                                    });
-                                  } else {
-                                    newSet.delete(fixture.id);
-                                  }
-                                  setSelectedFixturesForEdit(newSet);
-                                }}
-                                data-testid={`checkbox-fixture-${fixture.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="text"
-                                className="w-full px-2 py-1 border rounded text-sm"
-                                value={bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam}
-                                onChange={(e) => {
-                                  setBulkFixtureUpdates({
-                                    ...bulkFixtureUpdates,
-                                    [fixture.id]: {
-                                      ...bulkFixtureUpdates[fixture.id],
-                                      homeTeam: e.target.value,
-                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
-                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
-                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedFixturesForEdit.has(fixture.id)}
-                                data-testid={`input-home-team-${fixture.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="text"
-                                className="w-full px-2 py-1 border rounded text-sm"
-                                value={bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam}
-                                onChange={(e) => {
-                                  setBulkFixtureUpdates({
-                                    ...bulkFixtureUpdates,
-                                    [fixture.id]: {
-                                      ...bulkFixtureUpdates[fixture.id],
-                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
-                                      awayTeam: e.target.value,
-                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
-                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedFixturesForEdit.has(fixture.id)}
-                                data-testid={`input-away-team-${fixture.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2 text-center">
-                              <input
-                                type="datetime-local"
-                                className="px-2 py-1 border rounded text-sm"
-                                value={bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime)}
-                                onChange={(e) => {
-                                  setBulkFixtureUpdates({
-                                    ...bulkFixtureUpdates,
-                                    [fixture.id]: {
-                                      ...bulkFixtureUpdates[fixture.id],
-                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
-                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
-                                      kickoffTime: e.target.value,
-                                      gameweekId: bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || ""),
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedFixturesForEdit.has(fixture.id)}
-                                data-testid={`input-kickoff-${fixture.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2 text-center">
-                              <select
-                                className="px-2 py-1 border rounded text-sm"
-                                value={bulkFixtureUpdates[fixture.id]?.gameweekId ?? (fixture.gameweekId?.toString() || "")}
-                                onChange={(e) => {
-                                  setBulkFixtureUpdates({
-                                    ...bulkFixtureUpdates,
-                                    [fixture.id]: {
-                                      ...bulkFixtureUpdates[fixture.id],
-                                      homeTeam: bulkFixtureUpdates[fixture.id]?.homeTeam ?? fixture.homeTeam,
-                                      awayTeam: bulkFixtureUpdates[fixture.id]?.awayTeam ?? fixture.awayTeam,
-                                      kickoffTime: bulkFixtureUpdates[fixture.id]?.kickoffTime ?? convertUTCToUKTime(fixture.kickoffTime),
-                                      gameweekId: e.target.value,
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedFixturesForEdit.has(fixture.id)}
-                                data-testid={`select-gameweek-${fixture.id}`}
-                              >
-                                <option value="">Select...</option>
-                                {gameweeks.map((gw: any) => (
-                                  <option key={gw.id} value={gw.id.toString()}>{gw.name}</option>
-                                ))}
-                              </select>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {selectedFixturesForEdit.size > 0 && (
-                    <Button
-                      onClick={() => bulkUpdateFixturesMutation.mutate()}
-                      disabled={bulkUpdateFixturesMutation.isPending}
-                      className="w-full bg-football-gold hover:bg-yellow-600"
-                      data-testid="button-bulk-save-fixtures"
-                    >
-                      {bulkUpdateFixturesMutation.isPending ? "Updating..." : `Update ${selectedFixturesForEdit.size} Fixtures`}
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No fixtures available</p>
-              )}
-            </div>
-          )}
-
-          {bulkTab === "players" && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">Select players and update their details in bulk.</p>
-              {players.length > 0 ? (
-                <>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse text-sm">
-                      <thead>
-                        <tr className="border-b bg-gray-50">
-                          <th className="text-left py-2 px-2 w-8">
-                            <input
-                              type="checkbox"
-                              onChange={(e) => {
-                                if (e.target.checked) {
-                                  const newSet = new Set(players.map((p: any) => p.id));
-                                  setSelectedPlayers(newSet);
-                                } else {
-                                  setSelectedPlayers(new Set());
-                                }
-                              }}
-                              data-testid="checkbox-select-all-players"
-                            />
-                          </th>
-                          <th className="text-left py-2 px-2">Name</th>
-                          <th className="text-left py-2 px-2">Email</th>
-                          <th className="text-left py-2 px-2">Phone</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {players.map((player: any) => (
-                          <tr key={player.id} className="border-b hover:bg-gray-50">
-                            <td className="py-2 px-2">
-                              <input
-                                type="checkbox"
-                                checked={selectedPlayers.has(player.id)}
-                                onChange={(e) => {
-                                  const newSet = new Set(selectedPlayers);
-                                  if (e.target.checked) {
-                                    newSet.add(player.id);
-                                    setBulkPlayerUpdates({
-                                      ...bulkPlayerUpdates,
-                                      [player.id]: {
-                                        name: player.name || "",
-                                        email: player.email || "",
-                                        phoneNumber: player.phoneNumber || "",
-                                      },
-                                    });
-                                  } else {
-                                    newSet.delete(player.id);
-                                  }
-                                  setSelectedPlayers(newSet);
-                                }}
-                                data-testid={`checkbox-player-${player.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="text"
-                                className="w-full px-2 py-1 border rounded text-sm"
-                                value={bulkPlayerUpdates[player.id]?.name ?? player.name ?? ""}
-                                onChange={(e) => {
-                                  setBulkPlayerUpdates({
-                                    ...bulkPlayerUpdates,
-                                    [player.id]: {
-                                      ...bulkPlayerUpdates[player.id],
-                                      name: e.target.value,
-                                      email: bulkPlayerUpdates[player.id]?.email ?? player.email ?? "",
-                                      phoneNumber: bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? "",
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedPlayers.has(player.id)}
-                                data-testid={`input-player-name-${player.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="email"
-                                className="w-full px-2 py-1 border rounded text-sm"
-                                value={bulkPlayerUpdates[player.id]?.email ?? player.email ?? ""}
-                                onChange={(e) => {
-                                  setBulkPlayerUpdates({
-                                    ...bulkPlayerUpdates,
-                                    [player.id]: {
-                                      ...bulkPlayerUpdates[player.id],
-                                      name: bulkPlayerUpdates[player.id]?.name ?? player.name ?? "",
-                                      email: e.target.value,
-                                      phoneNumber: bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? "",
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedPlayers.has(player.id)}
-                                data-testid={`input-player-email-${player.id}`}
-                              />
-                            </td>
-                            <td className="py-2 px-2">
-                              <input
-                                type="tel"
-                                className="w-full px-2 py-1 border rounded text-sm"
-                                value={bulkPlayerUpdates[player.id]?.phoneNumber ?? player.phoneNumber ?? ""}
-                                onChange={(e) => {
-                                  setBulkPlayerUpdates({
-                                    ...bulkPlayerUpdates,
-                                    [player.id]: {
-                                      ...bulkPlayerUpdates[player.id],
-                                      name: bulkPlayerUpdates[player.id]?.name ?? player.name ?? "",
-                                      email: bulkPlayerUpdates[player.id]?.email ?? player.email ?? "",
-                                      phoneNumber: e.target.value,
-                                    },
-                                  });
-                                }}
-                                disabled={!selectedPlayers.has(player.id)}
-                                data-testid={`input-player-phone-${player.id}`}
-                              />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                  {selectedPlayers.size > 0 && (
-                    <Button
-                      onClick={() => bulkUpdatePlayersMutation.mutate()}
-                      disabled={bulkUpdatePlayersMutation.isPending}
-                      className="w-full bg-football-gold hover:bg-yellow-600"
-                      data-testid="button-bulk-save-players"
-                    >
-                      {bulkUpdatePlayersMutation.isPending ? "Updating..." : `Update ${selectedPlayers.size} Players`}
-                    </Button>
-                  )}
-                </>
-              ) : (
-                <p className="text-gray-500 text-center py-8">No players available</p>
-              )}
-            </div>
-          )}
-
-          {bulkTab === "add" && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">Add multiple fixtures at once. Fill in the details and click "Create Fixtures".</p>
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b bg-gray-50">
-                      <th className="text-left py-2 px-2">Home Team</th>
-                      <th className="text-left py-2 px-2">Away Team</th>
-                      <th className="text-center py-2 px-2">Kickoff (UK Time)</th>
-                      <th className="text-center py-2 px-2">Gameweek</th>
-                      <th className="text-center py-2 px-2 w-12"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {bulkNewFixtures.map((fixture, index) => (
-                      <tr key={index} className="border-b hover:bg-gray-50">
-                        <td className="py-2 px-2">
-                          <select
-                            className="w-full px-2 py-1 border rounded text-sm"
-                            value={fixture.homeTeam}
-                            onChange={(e) => {
-                              const updated = [...bulkNewFixtures];
-                              updated[index] = { ...updated[index], homeTeam: e.target.value };
-                              setBulkNewFixtures(updated);
-                            }}
-                            data-testid={`select-bulk-home-${index}`}
-                          >
-                            <option value="">Select team...</option>
-                            {PREMIER_LEAGUE_TEAMS.map((team) => (
-                              <option key={team.id} value={team.name}>{team.name}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="py-2 px-2">
-                          <select
-                            className="w-full px-2 py-1 border rounded text-sm"
-                            value={fixture.awayTeam}
-                            onChange={(e) => {
-                              const updated = [...bulkNewFixtures];
-                              updated[index] = { ...updated[index], awayTeam: e.target.value };
-                              setBulkNewFixtures(updated);
-                            }}
-                            data-testid={`select-bulk-away-${index}`}
-                          >
-                            <option value="">Select team...</option>
-                            {PREMIER_LEAGUE_TEAMS.map((team) => (
-                              <option key={team.id} value={team.name}>{team.name}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="py-2 px-2 text-center">
-                          <input
-                            type="datetime-local"
-                            className="px-2 py-1 border rounded text-sm"
-                            value={fixture.kickoffTime}
-                            onChange={(e) => {
-                              const updated = [...bulkNewFixtures];
-                              updated[index] = { ...updated[index], kickoffTime: e.target.value };
-                              setBulkNewFixtures(updated);
-                            }}
-                            data-testid={`input-bulk-kickoff-${index}`}
-                          />
-                        </td>
-                        <td className="py-2 px-2 text-center">
-                          <select
-                            className="px-2 py-1 border rounded text-sm"
-                            value={fixture.gameweekId}
-                            onChange={(e) => {
-                              const updated = [...bulkNewFixtures];
-                              updated[index] = { ...updated[index], gameweekId: e.target.value };
-                              setBulkNewFixtures(updated);
-                            }}
-                            data-testid={`select-bulk-gameweek-${index}`}
-                          >
-                            <option value="">Select...</option>
-                            {gameweeks.map((gw: any) => (
-                              <option key={gw.id} value={gw.id.toString()}>{gw.name}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td className="py-2 px-2 text-center">
-                          {bulkNewFixtures.length > 1 && (
-                            <button
-                              onClick={() => {
-                                const updated = bulkNewFixtures.filter((_, i) => i !== index);
-                                setBulkNewFixtures(updated);
-                              }}
-                              className="text-red-500 hover:text-red-700"
-                              data-testid={`button-remove-fixture-${index}`}
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => {
-                    setBulkNewFixtures([...bulkNewFixtures, { homeTeam: "", awayTeam: "", kickoffTime: "", gameweekId: "" }]);
-                  }}
-                  variant="outline"
-                  className="flex-1"
-                  data-testid="button-add-fixture-row"
-                >
-                  + Add Another Fixture
-                </Button>
-                <Button
-                  onClick={() => bulkCreateFixturesMutation.mutate()}
-                  disabled={bulkCreateFixturesMutation.isPending || !bulkNewFixtures.some(f => f.homeTeam && f.awayTeam && f.kickoffTime && f.gameweekId)}
-                  className="flex-1 bg-football-gold hover:bg-yellow-600"
-                  data-testid="button-bulk-create-fixtures"
-                >
-                  {bulkCreateFixturesMutation.isPending ? "Creating..." : `Create ${bulkNewFixtures.filter(f => f.homeTeam && f.awayTeam && f.kickoffTime && f.gameweekId).length} Fixtures`}
-                </Button>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Team Strength Ratings Management */}
       <Card className="mt-8">
