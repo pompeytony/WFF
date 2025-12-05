@@ -1,12 +1,12 @@
 import express, { type Request, Response, NextFunction } from "express";
-import { registerRoutes } from "./routes";
-import { setupVite, serveStatic, log } from "./vite";
-import { seedDatabase } from "./seed";
+import { registerRoutes } from "../server/routes";
+import { seedDatabase } from "../server/seed";
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
+// Logging middleware for API routes
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -30,29 +30,26 @@ app.use((req, res, next) => {
         logLine = logLine.slice(0, 79) + "…";
       }
 
-      log(logLine);
+      console.log(logLine);
     }
   });
 
   next();
 });
 
-async function startServer() {
+// Initialize the app (runs once per cold start in Vercel)
+let isInitialized = false;
+
+async function initializeApp() {
+  if (isInitialized) return;
+  
   try {
-    console.log("🚀 Starting Fantasy Football server...");
+    console.log("🚀 Initializing Fantasy Football API...");
     
-    // Set NODE_ENV if not already set
-    if (!process.env.NODE_ENV) {
-      process.env.NODE_ENV = "production";
-    }
-    
-    console.log(`📍 Environment: ${process.env.NODE_ENV}`);
-    
-    // Test database connection before seeding
+    // Test database connection
     try {
       console.log("🔌 Testing database connection...");
-      const { db } = await import("./db");
-      // Simple query to test connection
+      const { db } = await import("../server/db");
       await db.execute("SELECT 1 as test");
       console.log("✅ Database connection successful");
     } catch (dbError) {
@@ -60,13 +57,14 @@ async function startServer() {
       throw new Error(`Database connection failed: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
     }
 
-    // Seed the database on startup
+    // Seed the database
     console.log("🌱 Initializing database...");
     await seedDatabase();
     console.log("✅ Database initialization complete");
 
+    // Register API routes
     console.log("🛣️ Registering API routes...");
-    const server = await registerRoutes(app);
+    await registerRoutes(app);
     console.log("✅ API routes registered");
 
     // Global error handler
@@ -78,66 +76,19 @@ async function startServer() {
       res.status(status).json({ message });
     });
 
-    // Setup environment-specific configurations
-    const isProduction = process.env.NODE_ENV === "production";
-    console.log(`⚙️ Configuring for ${isProduction ? 'production' : 'development'}...`);
-    
-    if (!isProduction) {
-      console.log("🔧 Setting up Vite development server...");
-      await setupVite(app, server);
-      console.log("✅ Vite development server ready");
-    } else {
-      console.log("📁 Serving static files...");
-      serveStatic(app);
-      console.log("✅ Static file serving configured");
-    }
-
-    /*
-// ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 5000 if not specified.
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
-    const port = parseInt(process.env.PORT || '5000', 10);
-    
-    console.log(`🌐 Starting server on port ${port}...`);
-    
-    server.listen({
-      port,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
-      console.log(`🎉 Fantasy Football server running successfully on port ${port}`);
-      console.log(`📊 Environment: ${process.env.NODE_ENV}`);
-      console.log(`🔗 Access your app at: http://localhost:${port}`);
-      log(`serving on port ${port}`);
-    });
-
-    // Handle server startup errors
-    server.on('error', (error: any) => {
-      console.error('❌ Server startup error:', error);
-      if (error.code === 'EADDRINUSE') {
-        console.error(`❌ Port ${port} is already in use`);
-      }
-      process.exit(1);
-    });
-
+    isInitialized = true;
+    console.log("✅ API initialization complete");
   } catch (error) {
-    console.error("💥 Critical server startup error:", error);
+    console.error("💥 Critical initialization error:", error);
     console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace available');
-    
-    // Log environment info for debugging
-    console.error("🔍 Environment debug info:");
-    console.error("- NODE_ENV:", process.env.NODE_ENV);
-    console.error("- PORT:", process.env.PORT);
-    console.error("- DATABASE_URL:", process.env.DATABASE_URL ? "✅ Set" : "❌ Missing");
-    
-    process.exit(1);
+    throw error;
   }
 }
-*/
 
-// Start the server
-// startServer();
+// Initialize on first import
+initializeApp().catch(err => {
+  console.error("Failed to initialize app:", err);
+});
 
 // Export the Express app for Vercel serverless function
 export default app;

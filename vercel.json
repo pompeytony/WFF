@@ -1,5 +1,7 @@
 {
   "version": 2,
+  "buildCommand": "vite build",
+  "outputDirectory": "dist/public",
   "builds": [
     {
       "src": "api/index.ts",
@@ -8,8 +10,15 @@
   ],
   "routes": [
     {
-      "src": "/(.*)",
+      "src": "/api/(.*)",
       "dest": "api/index.ts"
+    },
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
     }
   ]
 }
