@@ -39,56 +39,64 @@ app.use((req, res, next) => {
 
 // Initialize the app (runs once per cold start in Vercel)
 let isInitialized = false;
+let initializationPromise: Promise<void> | null = null;
 
 async function initializeApp() {
   if (isInitialized) return;
+  if (initializationPromise) return initializationPromise;
   
-  try {
-    console.log("🚀 Initializing Fantasy Football API...");
-    
-    // Test database connection
+  initializationPromise = (async () => {
     try {
-      console.log("🔌 Testing database connection...");
-      const { db } = await import("../server/db");
-      await db.execute("SELECT 1 as test");
-      console.log("✅ Database connection successful");
-    } catch (dbError) {
-      console.error("❌ Database connection failed:", dbError);
-      throw new Error(`Database connection failed: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
-    }
-
-    // Seed the database
-    console.log("🌱 Initializing database...");
-    await seedDatabase();
-    console.log("✅ Database initialization complete");
-
-    // Register API routes
-    console.log("🛣️ Registering API routes...");
-    await registerRoutes(app);
-    console.log("✅ API routes registered");
-
-    // Global error handler
-    app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-      const status = err.status || err.statusCode || 500;
-      const message = err.message || "Internal Server Error";
+      console.log("🚀 Initializing Fantasy Football API...");
       
-      console.error(`❌ Server error [${status}]:`, message);
-      res.status(status).json({ message });
-    });
+      // Test database connection
+      try {
+        console.log("🔌 Testing database connection...");
+        const { db } = await import("../server/db");
+        await db.execute("SELECT 1 as test");
+        console.log("✅ Database connection successful");
+      } catch (dbError) {
+        console.error("❌ Database connection failed:", dbError);
+        throw new Error(`Database connection failed: ${dbError instanceof Error ? dbError.message : 'Unknown error'}`);
+      }
 
-    isInitialized = true;
-    console.log("✅ API initialization complete");
-  } catch (error) {
-    console.error("💥 Critical initialization error:", error);
-    console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace available');
-    throw error;
-  }
+      // Seed the database
+      console.log("🌱 Initializing database...");
+      await seedDatabase();
+      console.log("✅ Database initialization complete");
+
+      // Register API routes
+      console.log("🛣️ Registering API routes...");
+      await registerRoutes(app);
+      console.log("✅ API routes registered");
+
+      // Global error handler
+      app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
+        const status = err.status || err.statusCode || 500;
+        const message = err.message || "Internal Server Error";
+        
+        console.error(`❌ Server error [${status}]:`, message);
+        res.status(status).json({ message });
+      });
+
+      isInitialized = true;
+      console.log("✅ API initialization complete");
+    } catch (error) {
+      console.error("💥 Critical initialization error:", error);
+      console.error("Stack trace:", error instanceof Error ? error.stack : 'No stack trace available');
+      initializationPromise = null; // Reset so it can be retried
+      throw error;
+    }
+  })();
+  
+  return initializationPromise;
 }
 
-// Initialize on first import
-initializeApp().catch(err => {
-  console.error("Failed to initialize app:", err);
-});
+// Wrap the app to ensure initialization happens before handling requests
+const wrappedApp = async (req: Request, res: Response) => {
+  await initializeApp();
+  return app(req, res);
+};
 
-// Export the Express app for Vercel serverless function
-export default app;
+// Export the wrapped app for Vercel serverless function
+export default wrappedApp;
